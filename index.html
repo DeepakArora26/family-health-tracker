@@ -6,1062 +6,644 @@
 <title>Family Health Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet"/>
 <style>
-/* ============================================================
-   IMPORTANT: Replace APPS_SCRIPT_URL in the <script> section
-   at the bottom with your own Google Apps Script Web App URL
-   ============================================================ */
-
 :root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface2: #21262d;
-  --border: #30363d;
-  --accent: #58a6ff;
-  --accent2: #3fb950;
-  --warn: #d29922;
-  --danger: #f85149;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --radius: 12px;
+  --bg:#0d1117; --surface:#161b22; --surface2:#21262d; --border:#30363d;
+  --accent:#58a6ff; --accent2:#3fb950; --warn:#d29922; --danger:#f85149;
+  --text:#e6edf3; --muted:#8b949e; --radius:12px;
 }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+/* ── LOGIN ── */
+#loginScreen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px 40px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.5);animation:loginDrop .5s cubic-bezier(.16,1,.3,1)}
+@keyframes loginDrop{from{opacity:0;transform:translateY(-30px) scale(.96)}to{opacity:1;transform:none}}
+.login-icon{font-size:3rem;margin-bottom:14px}
+.login-title{font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:5px}
+.login-title span{color:var(--accent);font-style:italic}
+.login-sub{font-size:.82rem;color:var(--muted);margin-bottom:28px}
+.l-field{margin-bottom:13px;text-align:left}
+.l-field label{display:block;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:5px}
+.l-field input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px 15px;font-family:'Sora',sans-serif;font-size:.93rem;color:var(--text);transition:border-color .2s;letter-spacing:.5px}
+.l-field input:focus{outline:none;border-color:var(--accent)}
+.l-field input.shake{animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.remember{display:flex;align-items:center;gap:8px;font-size:.79rem;color:var(--muted);margin-bottom:18px;cursor:pointer;user-select:none;text-align:left}
+.remember input{accent-color:var(--accent);width:15px;height:15px}
+.login-btn{width:100%;padding:13px;background:var(--accent);color:#0d1117;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:.93rem;font-weight:700;cursor:pointer;transition:all .2s}
+.login-btn:hover{background:#79b8ff;transform:translateY(-1px)}
+.login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.login-err{margin-top:12px;font-size:.79rem;color:var(--danger);min-height:18px;font-weight:500}
+.setup-toggle{display:inline-block;margin-top:18px;font-size:.77rem;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.setup-toggle:hover{color:var(--accent)}
+#setupPanel{display:none;margin-top:20px;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px}
+#setupPanel.open{display:block}
+.s-field{margin-bottom:11px}
+.s-field label{display:block;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:4px}
+.s-field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-family:'Sora',sans-serif;font-size:.84rem;color:var(--text)}
+.s-field input:focus{outline:none;border-color:var(--accent)}
+.s-note{font-size:.71rem;color:var(--muted);margin-top:3px;line-height:1.5}
+.save-setup{width:100%;padding:10px;margin-top:6px;background:var(--surface);border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-family:'Sora',sans-serif;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .2s}
+.save-setup:hover{background:rgba(88,166,255,.1)}
+.login-hint{margin-top:18px;font-size:.72rem;color:var(--muted);line-height:1.7}
 
-/* HEADER */
-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 16px 28px;
-  display: flex; align-items: center; justify-content: space-between;
-  position: sticky; top: 0; z-index: 200;
-}
-header h1 { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--text); }
-header h1 span { color: var(--accent); font-style: italic; }
-.header-right { display: flex; align-items: center; gap: 12px; }
-.config-btn {
-  background: var(--surface2); border: 1px solid var(--border);
-  color: var(--muted); padding: 7px 14px; border-radius: 8px;
-  font-size: 0.78rem; font-family: 'Sora', sans-serif; cursor: pointer;
-  transition: all 0.2s;
-}
-.config-btn:hover { border-color: var(--accent); color: var(--accent); }
-.sync-status { font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
-.sync-dot.ok { background: var(--accent2); }
-.sync-dot.err { background: var(--danger); }
-.sync-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+/* ── APP ── */
+#appShell{display:none}
+#appShell.on{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
-/* TABS */
-nav {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex; padding: 0 28px; gap: 0;
-  overflow-x: auto;
-}
-.tab {
-  padding: 13px 20px; cursor: pointer;
-  font-size: 0.83rem; font-weight: 500; white-space: nowrap;
-  color: var(--muted); border-bottom: 2px solid transparent;
-  margin-bottom: -1px; transition: all 0.2s;
-}
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tab:hover:not(.active) { color: var(--text); }
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+header h1{font-family:'Playfair Display',serif;font-size:1.3rem}
+header h1 span{color:var(--accent);font-style:italic}
+.hdr-r{display:flex;align-items:center;gap:10px}
+.sync{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--accent2)}.dot.err{background:var(--danger)}.dot.spin{background:var(--warn);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hbtn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:6px 11px;border-radius:7px;font-size:.74rem;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s}
+.hbtn:hover{border-color:var(--accent);color:var(--accent)}
+.hbtn.out{color:var(--danger)}.hbtn.out:hover{border-color:var(--danger);background:rgba(248,81,73,.08)}
 
-/* MAIN */
-main { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
-.page { display: none; animation: fadeIn 0.2s ease; }
-.page.active { display: block; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 26px;overflow-x:auto}
+.tab{padding:12px 17px;cursor:pointer;font-size:.81rem;font-weight:500;white-space:nowrap;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
 
-/* SETUP BANNER */
-.setup-banner {
-  background: linear-gradient(135deg, #1c2a3a, #162032);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  padding: 20px 24px;
-  margin-bottom: 24px;
-  display: none;
-}
-.setup-banner.visible { display: block; }
-.setup-banner h3 { color: var(--accent); font-size: 0.95rem; margin-bottom: 8px; }
-.setup-banner p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
-.setup-banner code {
-  background: var(--bg); color: var(--accent2);
-  padding: 1px 6px; border-radius: 4px; font-size: 0.8rem;
-}
+main{max-width:1100px;margin:0 auto;padding:22px 18px}
+.page{display:none;animation:fadeIn .2s ease}.page.active{display:block}
 
-/* STATS */
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
-.stat {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 18px 20px;
-  transition: border-color 0.2s;
-}
-.stat:hover { border-color: var(--accent); }
-.stat .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
-.stat .val { font-family: 'Playfair Display', serif; font-size: 2rem; line-height: 1; }
-.stat .sub { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
-.val.danger { color: var(--danger); }
-.val.ok { color: var(--accent2); }
-.val.warn { color: var(--warn); }
-.val.info { color: var(--accent); }
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:11px;margin-bottom:18px}
+.st{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 17px;transition:border-color .2s}
+.st:hover{border-color:var(--accent)}
+.st .lb{font-size:.69rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
+.st .vl{font-family:'Playfair Display',serif;font-size:1.85rem;line-height:1}
+.st .sb{font-size:.71rem;color:var(--muted);margin-top:3px}
+.vl.d{color:var(--danger)}.vl.o{color:var(--accent2)}.vl.w{color:var(--warn)}.vl.i{color:var(--accent)}
 
-/* ALERT */
-.alert-bar {
-  background: #2d1a1a; border: 1px solid var(--danger);
-  border-radius: var(--radius); padding: 14px 18px;
-  margin-bottom: 20px; font-size: 0.84rem;
-  display: none;
-}
-.alert-bar.visible { display: block; }
-.alert-bar .alert-title { color: var(--danger); font-weight: 600; margin-bottom: 6px; }
-.alert-bar ul { padding-left: 16px; color: #ccc; line-height: 2; }
+.abar{background:#2d1a1a;border:1px solid var(--danger);border-radius:var(--radius);padding:11px 15px;margin-bottom:16px;font-size:.82rem;display:none}
+.abar.on{display:block}
+.abar .at{color:var(--danger);font-weight:600;margin-bottom:5px}
+.abar ul{padding-left:15px;color:#ccc;line-height:2}
 
-/* CARD */
-.card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 22px 24px; margin-bottom: 20px;
-}
-.card-title {
-  font-family: 'Playfair Display', serif; font-size: 1.05rem;
-  margin-bottom: 18px; display: flex; align-items: center;
-  justify-content: space-between; gap: 8px;
-}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:19px 21px;margin-bottom:16px}
+.ct{font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:15px;display:flex;align-items:center;justify-content:space-between}
 
-/* TABLE */
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
-th {
-  text-align: left; padding: 10px 12px;
-  background: var(--surface2); color: var(--muted);
-  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px;
-  font-weight: 600;
-}
-th:first-child { border-radius: 8px 0 0 8px; }
-th:last-child { border-radius: 0 8px 8px 0; }
-td { padding: 12px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: rgba(88,166,255,0.03); }
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.81rem}
+th{text-align:left;padding:9px 10px;background:var(--surface2);color:var(--muted);font-size:.69rem;text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+th:first-child{border-radius:8px 0 0 8px}th:last-child{border-radius:0 8px 8px 0}
+td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}tr:hover td{background:rgba(88,166,255,.03)}
 
-/* BADGE */
-.badge {
-  display: inline-block; padding: 3px 9px;
-  border-radius: 20px; font-size: 0.72rem; font-weight: 600;
-}
-.badge.low { background: rgba(248,81,73,0.15); color: var(--danger); border: 1px solid rgba(248,81,73,0.3); }
-.badge.ok { background: rgba(63,185,80,0.1); color: var(--accent2); border: 1px solid rgba(63,185,80,0.3); }
-.badge.warn { background: rgba(210,153,34,0.1); color: var(--warn); border: 1px solid rgba(210,153,34,0.3); }
-.chip {
-  display: inline-block; padding: 2px 8px;
-  border-radius: 20px; font-size: 0.72rem;
-  background: rgba(88,166,255,0.1); color: var(--accent);
-  border: 1px solid rgba(88,166,255,0.2);
-}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.69rem;font-weight:600}
+.badge.low{background:rgba(248,81,73,.15);color:var(--danger);border:1px solid rgba(248,81,73,.3)}
+.badge.ok{background:rgba(63,185,80,.1);color:var(--accent2);border:1px solid rgba(63,185,80,.3)}
+.badge.warn{background:rgba(210,153,34,.1);color:var(--warn);border:1px solid rgba(210,153,34,.3)}
+.chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.69rem;background:rgba(88,166,255,.1);color:var(--accent);border:1px solid rgba(88,166,255,.2)}
 
-/* ACTION BUTTONS */
-.action-btn {
-  padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
-  font-size: 0.75rem; cursor: pointer; font-family: 'Sora', sans-serif;
-  transition: all 0.15s; background: transparent;
-}
-.action-btn.edit { color: var(--accent); border-color: rgba(88,166,255,0.3); }
-.action-btn.edit:hover { background: rgba(88,166,255,0.1); }
-.action-btn.del { color: var(--danger); border-color: rgba(248,81,73,0.3); }
-.action-btn.del:hover { background: rgba(248,81,73,0.1); }
-.action-btn.view { color: var(--accent2); border-color: rgba(63,185,80,0.3); }
-.action-btn.view:hover { background: rgba(63,185,80,0.1); }
+.ab{padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:.72rem;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s;background:transparent}
+.ab.e{color:var(--accent);border-color:rgba(88,166,255,.3)}.ab.e:hover{background:rgba(88,166,255,.1)}
+.ab.d{color:var(--danger);border-color:rgba(248,81,73,.3)}.ab.d:hover{background:rgba(248,81,73,.1)}
 
-/* REFILL TIMELINE */
-.refill-list { display: flex; flex-direction: column; gap: 0; }
-.refill-item {
-  display: flex; align-items: center; gap: 16px;
-  padding: 14px 0; border-bottom: 1px solid var(--border);
-}
-.refill-item:last-child { border-bottom: none; }
-.refill-date-box {
-  min-width: 64px; text-align: center;
-  border-radius: 10px; padding: 8px 10px;
-  background: var(--surface2); border: 1px solid var(--border);
-}
-.refill-date-box .rday { font-family: 'Playfair Display', serif; font-size: 1.4rem; line-height: 1; }
-.refill-date-box .rmon { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
-.refill-info { flex: 1; }
-.refill-info h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
-.refill-info p { font-size: 0.78rem; color: var(--muted); }
-.days-pill {
-  font-family: 'Playfair Display', serif; font-size: 1.3rem;
-  min-width: 48px; text-align: right;
-}
+.ri-list{display:flex;flex-direction:column}
+.ri{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--border)}
+.ri:last-child{border-bottom:none}
+.rdb{min-width:56px;text-align:center;border-radius:9px;padding:7px 8px;background:var(--surface2);border:1px solid var(--border)}
+.rdy{font-family:'Playfair Display',serif;font-size:1.25rem;line-height:1}
+.rmn{font-size:.61rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.rinfo{flex:1}.rinfo h4{font-size:.87rem;font-weight:600;margin-bottom:2px}.rinfo p{font-size:.75rem;color:var(--muted)}
+.dp{font-family:'Playfair Display',serif;font-size:1.15rem;min-width:42px;text-align:right}
 
-/* REPORT CARDS */
-.report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
-.report-card {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 18px;
-  display: flex; flex-direction: column; gap: 6px;
-  transition: border-color 0.2s;
-}
-.report-card:hover { border-color: var(--accent2); }
-.report-card .rtype { font-size: 1.6rem; }
-.report-card h4 { font-size: 0.9rem; font-weight: 600; }
-.report-card .rmeta { font-size: 0.76rem; color: var(--muted); }
-.report-card .rfinding { font-size: 0.78rem; color: var(--text); background: var(--surface); padding: 6px 10px; border-radius: 6px; }
-.open-link {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: rgba(63,185,80,0.1); color: var(--accent2);
-  border: 1px solid rgba(63,185,80,0.3);
-  padding: 6px 12px; border-radius: 7px;
-  font-size: 0.78rem; font-weight: 600; text-decoration: none;
-  margin-top: 4px; width: fit-content; transition: all 0.2s;
-}
-.open-link:hover { background: rgba(63,185,80,0.2); }
-.report-actions { display: flex; gap: 6px; margin-top: 4px; }
+.rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:11px}
+.rc{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:15px;display:flex;flex-direction:column;gap:5px;transition:border-color .2s}
+.rc:hover{border-color:var(--accent2)}
+.ric{font-size:1.45rem}.rc h4{font-size:.87rem;font-weight:600}
+.rm{font-size:.73rem;color:var(--muted)}.rf{font-size:.75rem;color:var(--text);background:var(--surface);padding:5px 8px;border-radius:6px}
+.ol{display:inline-flex;align-items:center;gap:4px;background:rgba(63,185,80,.1);color:var(--accent2);border:1px solid rgba(63,185,80,.3);padding:5px 10px;border-radius:7px;font-size:.75rem;font-weight:600;text-decoration:none;margin-top:3px;width:fit-content;transition:all .2s}
+.ol:hover{background:rgba(63,185,80,.2)}
+.ra{display:flex;gap:5px;margin-top:2px;align-items:center}
 
-/* MEMBER VIEW */
-.member-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-.member-pill {
-  padding: 7px 16px; border-radius: 30px; cursor: pointer;
-  font-size: 0.82rem; font-weight: 500;
-  border: 1px solid var(--border); background: var(--surface2);
-  color: var(--muted); transition: all 0.2s;
-}
-.member-pill.active { background: rgba(88,166,255,0.1); border-color: var(--accent); color: var(--accent); }
+.mtabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.mp{padding:6px 13px;border-radius:30px;cursor:pointer;font-size:.79rem;font-weight:500;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .2s}
+.mp.active{background:rgba(88,166,255,.1);border-color:var(--accent);color:var(--accent)}
 
-/* FORMS */
-.form-section { margin-bottom: 14px; }
-.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
-.form-group { display: flex; flex-direction: column; gap: 5px; }
-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
-input, select, textarea {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 9px 12px;
-  font-family: 'Sora', sans-serif; font-size: 0.88rem; color: var(--text);
-  transition: border-color 0.2s;
-}
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
-select option { background: var(--surface2); }
-textarea { resize: vertical; min-height: 60px; }
+.fr{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px;margin-bottom:10px}
+.fg{display:flex;flex-direction:column;gap:4px}
+label{font-size:.71rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:'Sora',sans-serif;font-size:.86rem;color:var(--text);transition:border-color .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+select option{background:var(--surface2)}textarea{resize:vertical;min-height:52px}
 
-.form-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
-.btn {
-  padding: 9px 20px; border-radius: 8px; border: none;
-  font-family: 'Sora', sans-serif; font-size: 0.85rem; font-weight: 600;
-  cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
-}
-.btn-primary { background: var(--accent); color: #0d1117; }
-.btn-primary:hover { background: #79b8ff; }
-.btn-danger { background: var(--danger); color: white; }
-.btn-danger:hover { background: #ff6b60; }
-.btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-.btn-ghost:hover { border-color: var(--muted); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.fa{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn{padding:8px 17px;border-radius:8px;border:none;font-family:'Sora',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
+.bp{background:var(--accent);color:#0d1117}.bp:hover{background:#79b8ff}
+.bg{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.bg:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 
-/* MODAL */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-  z-index: 500; display: none; align-items: center; justify-content: center;
-  padding: 20px;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 16px; padding: 28px; width: 100%; max-width: 540px;
-  max-height: 90vh; overflow-y: auto;
-  animation: slideUp 0.25s ease;
-}
-@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
-.modal-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 20px; }
-.modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.mo.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:510px;max-height:90vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.mt{font-family:'Playfair Display',serif;font-size:1.08rem;margin-bottom:16px}
+.ma{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
 
-/* CONFIG MODAL */
-.config-field { margin-bottom: 14px; }
-.config-field label { display: block; margin-bottom: 5px; }
-.config-field input { width: 100%; }
-.config-note { font-size: 0.75rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+.toast{position:fixed;bottom:20px;right:20px;z-index:1000;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 15px;font-size:.81rem;display:flex;align-items:center;gap:6px;transform:translateY(70px);opacity:0;transition:all .3s;max-width:300px}
+.toast.show{transform:none;opacity:1}.toast.success{border-color:var(--accent2)}.toast.error{border-color:var(--danger)}
 
-/* TOAST */
-.toast {
-  position: fixed; bottom: 24px; right: 24px; z-index: 1000;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 12px 18px; font-size: 0.83rem;
-  display: flex; align-items: center; gap: 8px;
-  transform: translateY(80px); opacity: 0; transition: all 0.3s;
-  max-width: 340px;
-}
-.toast.show { transform: none; opacity: 1; }
-.toast.success { border-color: var(--accent2); }
-.toast.error { border-color: var(--danger); }
+.lr td{text-align:center;color:var(--muted);padding:26px}
+.sp{display:inline-block;width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.es{text-align:center;padding:34px;color:var(--muted);font-size:.85rem}
+.es .em{font-size:2rem;margin-bottom:7px}
 
-/* LOADING */
-.loading-row td { text-align: center; color: var(--muted); padding: 32px; }
-.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.empty-state { text-align: center; padding: 40px; color: var(--muted); font-size: 0.88rem; }
-.empty-state .emoji { font-size: 2.5rem; margin-bottom: 10px; }
-
-@media (max-width: 600px) {
-  header { padding: 12px 16px; }
-  nav { padding: 0 12px; }
-  main { padding: 16px 12px; }
-  .form-row { grid-template-columns: 1fr; }
+@media(max-width:600px){
+  header{padding:11px 13px}nav{padding:0 9px}main{padding:13px 10px}
+  .fr{grid-template-columns:1fr}.login-box{padding:34px 22px}
 }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<header>
-  <h1>Family <span>Health</span> Tracker</h1>
-  <div class="header-right">
-    <div class="sync-status">
-      <div class="sync-dot" id="syncDot"></div>
-      <span id="syncText">Not connected</span>
+<!-- ══════════════ LOGIN SCREEN ══════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-icon">🏥</div>
+    <div class="login-title">Family <span>Health</span></div>
+    <div class="login-sub">Enter your password to continue</div>
+
+    <div class="l-field">
+      <label>Password</label>
+      <input type="password" id="pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
     </div>
-    <button class="config-btn" onclick="openConfig()">⚙ Setup</button>
+    <label class="remember">
+      <input type="checkbox" id="rem" checked/> Remember me for 7 days
+    </label>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Unlock →</button>
+    <div class="login-err" id="loginErr"></div>
+
+    <span class="setup-toggle" onclick="toggleSetup()">⚙ First time? Configure here</span>
+
+    <div id="setupPanel">
+      <div class="s-field">
+        <label>Apps Script URL *</label>
+        <input type="url" id="sUrl" placeholder="https://script.google.com/macros/s/.../exec"/>
+        <div class="s-note">Your Google Apps Script Web App deployment URL</div>
+      </div>
+      <div class="s-field">
+        <label>Secret Key *</label>
+        <input type="text" id="sSecret" placeholder="e.g. deepak-health-2026"/>
+        <div class="s-note">Must match SECRET_KEY in your Code.gs file</div>
+      </div>
+      <div class="s-field">
+        <label>Set App Password *</label>
+        <input type="text" id="sPw" placeholder="Choose a password you'll remember"/>
+        <div class="s-note">This is what you type every time you open the app</div>
+      </div>
+      <div class="s-field">
+        <label>Family Members (comma separated)</label>
+        <input type="text" id="sMembers" placeholder="Papa, Mummy, Deepak, Child"/>
+      </div>
+      <button class="save-setup" onclick="saveSetup()">💾 Save Configuration</button>
+    </div>
+
+    <div class="login-hint">
+      🔒 Your URL, key and password are stored <strong>only in this browser</strong>.<br/>
+      The GitHub file contains none of these — it is completely safe to make public.
+    </div>
   </div>
-</header>
+</div>
 
-<!-- TABS -->
-<nav>
-  <div class="tab active" onclick="showPage('dashboard',this)">🏠 Dashboard</div>
-  <div class="tab" onclick="showPage('medicines',this)">💊 Medicines</div>
-  <div class="tab" onclick="showPage('members',this)">👨‍👩‍👧 By Member</div>
-  <div class="tab" onclick="showPage('refills',this)">📅 Refills</div>
-  <div class="tab" onclick="showPage('reports',this)">🧪 Reports</div>
-  <div class="tab" onclick="showPage('addmed',this)">＋ Add Medicine</div>
-  <div class="tab" onclick="showPage('addrep',this)">＋ Add Report</div>
-</nav>
-
-<main>
-
-  <!-- SETUP BANNER -->
-  <div class="setup-banner" id="setupBanner">
-    <h3>⚙️ Setup Required — Connect to Google Sheets</h3>
-    <p>Click <strong>Setup</strong> (top right) and paste your <strong>Google Apps Script Web App URL</strong>.<br>
-    Don't have one yet? Follow the <strong>SETUP GUIDE</strong> included in the ZIP file (SETUP.md). It takes about 5 minutes.</p>
-  </div>
-
-  <!-- DASHBOARD -->
-  <div id="dashboard" class="page active">
-    <div class="stats-grid" id="statsGrid">
-      <div class="stat"><div class="lbl">Medicines Low</div><div class="val danger" id="statLow">—</div><div class="sub">Need refill</div></div>
-      <div class="stat"><div class="lbl">Total Medicines</div><div class="val info" id="statTotal">—</div><div class="sub">Across all members</div></div>
-      <div class="stat"><div class="lbl">Next Refill In</div><div class="val warn" id="statNext">—</div><div class="sub" id="statNextSub">—</div></div>
-      <div class="stat"><div class="lbl">Reports Saved</div><div class="val ok" id="statReports">—</div><div class="sub">On Google Drive</div></div>
+<!-- ══════════════ APP SHELL ══════════════ -->
+<div id="appShell">
+  <header>
+    <h1>Family <span>Health</span> Tracker</h1>
+    <div class="hdr-r">
+      <div class="sync"><div class="dot" id="dot"></div><span id="syncTxt">Connecting…</span></div>
+      <button class="hbtn out" onclick="logout()">🔒 Lock</button>
     </div>
-    <div class="alert-bar" id="alertBar">
-      <div class="alert-title">⚠️ Low Stock Alert</div>
-      <ul id="alertList"></ul>
-    </div>
-    <div class="card">
-      <div class="card-title">💊 Medicine Stock Overview</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Medicine</th><th>Member</th><th>Left</th><th>Daily Dose</th><th>Days Left</th><th>Status</th></tr></thead>
-          <tbody id="dashMedTable"><tr class="loading-row"><td colspan="6"><span class="spinner"></span>Loading...</td></tr></tbody>
-        </table>
+  </header>
+
+  <nav>
+    <div class="tab active" onclick="showPage('dashboard',this)">🏠 Dashboard</div>
+    <div class="tab" onclick="showPage('medicines',this)">💊 Medicines</div>
+    <div class="tab" onclick="showPage('members',this)">👨‍👩‍👧 By Member</div>
+    <div class="tab" onclick="showPage('refills',this)">📅 Refills</div>
+    <div class="tab" onclick="showPage('reports',this)">🧪 Reports</div>
+    <div class="tab" onclick="showPage('addmed',this)">＋ Medicine</div>
+    <div class="tab" onclick="showPage('addrep',this)">＋ Report</div>
+  </nav>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="page active">
+      <div class="sg">
+        <div class="st"><div class="lb">Medicines Low</div><div class="vl d" id="sLow">—</div><div class="sb">Need refill</div></div>
+        <div class="st"><div class="lb">Total Medicines</div><div class="vl i" id="sTot">—</div><div class="sb">All members</div></div>
+        <div class="st"><div class="lb">Next Refill</div><div class="vl w" id="sNext">—</div><div class="sb" id="sNextS">—</div></div>
+        <div class="st"><div class="lb">Reports Saved</div><div class="vl o" id="sRep">—</div><div class="sb">Google Drive</div></div>
+      </div>
+      <div class="abar" id="abar"><div class="at">⚠️ Low Stock Alert</div><ul id="alist"></ul></div>
+      <div class="card">
+        <div class="ct">💊 Medicine Stock Overview</div>
+        <div class="tw"><table>
+          <thead><tr><th>Medicine</th><th>Member</th><th>Left</th><th>Dose/Day</th><th>Days Left</th><th>Status</th></tr></thead>
+          <tbody id="dtb"><tr class="lr"><td colspan="6"><span class="sp"></span>Loading…</td></tr></tbody>
+        </table></div>
       </div>
     </div>
-  </div>
 
-  <!-- MEDICINES PAGE -->
-  <div id="medicines" class="page">
-    <div class="card">
-      <div class="card-title">
-        <span>💊 All Medicines</span>
-        <button class="btn btn-primary" onclick="showPage('addmed', document.querySelector('[onclick*=addmed]'))">＋ Add Medicine</button>
-      </div>
-      <div class="table-wrap">
-        <table>
+    <!-- MEDICINES -->
+    <div id="medicines" class="page">
+      <div class="card">
+        <div class="ct"><span>💊 All Medicines</span>
+          <button class="btn bp" style="font-size:.79rem;padding:5px 13px" onclick="showPage('addmed',null)">＋ Add</button>
+        </div>
+        <div class="tw"><table>
           <thead><tr><th>Medicine</th><th>Member</th><th>Qty Left</th><th>Dose/Day</th><th>Days Left</th><th>Refill By</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="medTable"><tr class="loading-row"><td colspan="8"><span class="spinner"></span>Loading...</td></tr></tbody>
-        </table>
+          <tbody id="mtb"><tr class="lr"><td colspan="8"><span class="sp"></span>Loading…</td></tr></tbody>
+        </table></div>
       </div>
     </div>
-  </div>
 
-  <!-- BY MEMBER PAGE -->
-  <div id="members" class="page">
-    <div class="member-tabs" id="memberTabs"></div>
-    <div class="card">
-      <div class="card-title" id="memberCardTitle">Medicines</div>
-      <div class="table-wrap">
-        <table>
+    <!-- BY MEMBER -->
+    <div id="members" class="page">
+      <div class="mtabs" id="mtabs"></div>
+      <div class="card">
+        <div class="ct" id="mct">Medicines</div>
+        <div class="tw"><table>
           <thead><tr><th>Medicine</th><th>Qty Left</th><th>Dose/Day</th><th>Days Left</th><th>Refill By</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="memberMedTable"><tr class="loading-row"><td colspan="7"><span class="spinner"></span>Loading...</td></tr></tbody>
-        </table>
+          <tbody id="mmtb"><tr class="lr"><td colspan="7"><span class="sp"></span>Loading…</td></tr></tbody>
+        </table></div>
       </div>
     </div>
-  </div>
 
-  <!-- REFILLS PAGE -->
-  <div id="refills" class="page">
-    <div class="card">
-      <div class="card-title">📅 Upcoming Refill Schedule</div>
-      <div class="refill-list" id="refillList">
-        <div class="empty-state"><span class="spinner"></span> Loading...</div>
+    <!-- REFILLS -->
+    <div id="refills" class="page">
+      <div class="card">
+        <div class="ct">📅 Upcoming Refill Schedule</div>
+        <div class="ri-list" id="rilist"><div class="es"><span class="sp"></span> Loading…</div></div>
       </div>
     </div>
-  </div>
 
-  <!-- REPORTS PAGE -->
-  <div id="reports" class="page">
-    <div class="card" style="margin-bottom:20px;">
-      <div class="card-title">
-        <span>🧪 Test Reports & Documents</span>
-        <button class="btn btn-primary" onclick="showPage('addrep', document.querySelector('[onclick*=addrep]'))">＋ Add Report</button>
-      </div>
-      <div class="report-grid" id="reportGrid">
-        <div class="empty-state"><span class="spinner"></span> Loading...</div>
+    <!-- REPORTS -->
+    <div id="reports" class="page">
+      <div class="card">
+        <div class="ct"><span>🧪 Reports & Documents</span>
+          <button class="btn bp" style="font-size:.79rem;padding:5px 13px" onclick="showPage('addrep',null)">＋ Add</button>
+        </div>
+        <div class="rg" id="rg"><div class="es"><span class="sp"></span> Loading…</div></div>
       </div>
     </div>
-  </div>
 
-  <!-- ADD MEDICINE -->
-  <div id="addmed" class="page">
-    <div class="card">
-      <div class="card-title">💊 Add New Medicine</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Family Member *</label>
-          <select id="med_member"><option value="">Select member...</option></select>
+    <!-- ADD MEDICINE -->
+    <div id="addmed" class="page">
+      <div class="card">
+        <div class="ct">💊 Add New Medicine</div>
+        <div class="fr">
+          <div class="fg"><label>Member *</label><select id="mm"></select></div>
+          <div class="fg"><label>Medicine Name *</label><input type="text" id="mn" placeholder="e.g. Metformin 500mg"/></div>
+          <div class="fg"><label>Qty Bought *</label><input type="number" id="mq" placeholder="30" min="1"/></div>
         </div>
-        <div class="form-group">
-          <label>Medicine Name *</label>
-          <input type="text" id="med_name" placeholder="e.g. Metformin 500mg"/>
+        <div class="fr">
+          <div class="fg"><label>Daily Dose * (number)</label><input type="text" id="md" placeholder="2  or  0.14 for once/week"/></div>
+          <div class="fg"><label>Purchase Date *</label><input type="date" id="mdt"/></div>
+          <div class="fg"><label>Prescribed By</label><input type="text" id="mdr" placeholder="Dr. Sharma"/></div>
         </div>
-        <div class="form-group">
-          <label>Quantity Bought *</label>
-          <input type="number" id="med_qty" placeholder="e.g. 30" min="1"/>
+        <div class="fr"><div class="fg"><label>Notes</label><textarea id="mnt" placeholder="e.g. Take after meals…"></textarea></div></div>
+        <div class="fa">
+          <button class="btn bp" id="smb" onclick="saveMed()">💾 Save Medicine</button>
+          <button class="btn bg" onclick="clearMed()">✕ Clear</button>
         </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Daily Dose *</label>
-          <input type="text" id="med_dose" placeholder="e.g. 2 (enter number or 'as needed')"/>
-        </div>
-        <div class="form-group">
-          <label>Purchase Date *</label>
-          <input type="date" id="med_date"/>
-        </div>
-        <div class="form-group">
-          <label>Prescribed By</label>
-          <input type="text" id="med_doctor" placeholder="e.g. Dr. Sharma"/>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Notes</label>
-          <textarea id="med_notes" placeholder="e.g. Take after meals, morning only..."></textarea>
-        </div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-primary" id="saveMedBtn" onclick="saveMedicine()">💾 Save Medicine</button>
-        <button class="btn btn-ghost" onclick="clearMedForm()">✕ Clear</button>
       </div>
     </div>
-  </div>
 
-  <!-- ADD REPORT -->
-  <div id="addrep" class="page">
-    <div class="card">
-      <div class="card-title">🧪 Add Test Report / Document</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Family Member *</label>
-          <select id="rep_member"><option value="">Select member...</option></select>
+    <!-- ADD REPORT -->
+    <div id="addrep" class="page">
+      <div class="card">
+        <div class="ct">🧪 Add Test Report</div>
+        <div class="fr">
+          <div class="fg"><label>Member *</label><select id="rm"></select></div>
+          <div class="fg"><label>Test Name *</label><input type="text" id="rn" placeholder="e.g. HbA1c Blood Test"/></div>
+          <div class="fg"><label>Test Date *</label><input type="date" id="rdt"/></div>
         </div>
-        <div class="form-group">
-          <label>Test / Report Name *</label>
-          <input type="text" id="rep_name" placeholder="e.g. HbA1c Blood Test"/>
+        <div class="fr">
+          <div class="fg"><label>Lab / Hospital</label><input type="text" id="rl" placeholder="Metropolis Lab"/></div>
+          <div class="fg"><label>Key Finding</label><input type="text" id="rf" placeholder="HbA1c: 7.2%"/></div>
+          <div class="fg"><label>Google Drive Link *</label><input type="url" id="rk" placeholder="https://drive.google.com/…"/></div>
         </div>
-        <div class="form-group">
-          <label>Test Date *</label>
-          <input type="date" id="rep_date"/>
+        <div class="fa">
+          <button class="btn bp" id="srb" onclick="saveRep()">💾 Save Report</button>
+          <button class="btn bg" onclick="clearRep()">✕ Clear</button>
         </div>
+        <p style="font-size:.74rem;color:var(--muted);margin-top:11px">💡 Drive link: Upload PDF → Right-click → Get Link → "Anyone with link" → Copy</p>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Lab / Hospital</label>
-          <input type="text" id="rep_lab" placeholder="e.g. Metropolis Lab"/>
-        </div>
-        <div class="form-group">
-          <label>Key Finding</label>
-          <input type="text" id="rep_finding" placeholder="e.g. HbA1c: 7.2%, Normal"/>
-        </div>
-        <div class="form-group">
-          <label>Google Drive Link *</label>
-          <input type="url" id="rep_link" placeholder="https://drive.google.com/file/..."/>
-        </div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-primary" id="saveRepBtn" onclick="saveReport()">💾 Save Report</button>
-        <button class="btn btn-ghost" onclick="clearRepForm()">✕ Clear</button>
-      </div>
-      <p style="font-size:0.78rem;color:var(--muted);margin-top:14px;">
-        💡 To get a Drive link: Upload PDF to Google Drive → Right-click → <strong>Get Link</strong> → Set to "Anyone with link" → Copy link
-      </p>
     </div>
-  </div>
+  </main>
+</div>
 
-</main>
-
-<!-- EDIT MEDICINE MODAL -->
-<div class="modal-overlay" id="editMedModal">
+<!-- EDIT MED MODAL -->
+<div class="mo" id="emm">
   <div class="modal">
-    <div class="modal-title">✏️ Edit Medicine</div>
-    <input type="hidden" id="edit_med_row"/>
-    <div class="form-row">
-      <div class="form-group"><label>Member</label><select id="edit_med_member"></select></div>
-      <div class="form-group"><label>Medicine Name</label><input type="text" id="edit_med_name"/></div>
-      <div class="form-group"><label>Qty Left</label><input type="number" id="edit_med_qty" min="0"/></div>
+    <div class="mt">✏️ Edit Medicine</div>
+    <input type="hidden" id="emr"/>
+    <div class="fr">
+      <div class="fg"><label>Member</label><select id="emem"></select></div>
+      <div class="fg"><label>Medicine Name</label><input type="text" id="emn"/></div>
+      <div class="fg"><label>Qty Left</label><input type="number" id="emq" min="0"/></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Daily Dose</label><input type="text" id="edit_med_dose"/></div>
-      <div class="form-group"><label>Purchase Date</label><input type="date" id="edit_med_date"/></div>
-      <div class="form-group"><label>Prescribed By</label><input type="text" id="edit_med_doctor"/></div>
+    <div class="fr">
+      <div class="fg"><label>Daily Dose</label><input type="text" id="emd"/></div>
+      <div class="fg"><label>Purchase Date</label><input type="date" id="emdt"/></div>
+      <div class="fg"><label>Prescribed By</label><input type="text" id="emdr"/></div>
     </div>
-    <div class="form-group" style="margin-bottom:12px;"><label>Notes</label><textarea id="edit_med_notes"></textarea></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('editMedModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="updateMedicine()">💾 Save Changes</button>
+    <div class="fg" style="margin-bottom:9px"><label>Notes</label><textarea id="emnt"></textarea></div>
+    <div class="ma">
+      <button class="btn bg" onclick="cm('emm')">Cancel</button>
+      <button class="btn bp" onclick="updMed()">💾 Save</button>
     </div>
   </div>
 </div>
 
-<!-- EDIT REPORT MODAL -->
-<div class="modal-overlay" id="editRepModal">
+<!-- EDIT REP MODAL -->
+<div class="mo" id="erm">
   <div class="modal">
-    <div class="modal-title">✏️ Edit Report</div>
-    <input type="hidden" id="edit_rep_row"/>
-    <div class="form-row">
-      <div class="form-group"><label>Member</label><select id="edit_rep_member"></select></div>
-      <div class="form-group"><label>Test Name</label><input type="text" id="edit_rep_name"/></div>
-      <div class="form-group"><label>Test Date</label><input type="date" id="edit_rep_date"/></div>
+    <div class="mt">✏️ Edit Report</div>
+    <input type="hidden" id="err"/>
+    <div class="fr">
+      <div class="fg"><label>Member</label><select id="erem"></select></div>
+      <div class="fg"><label>Test Name</label><input type="text" id="ern"/></div>
+      <div class="fg"><label>Test Date</label><input type="date" id="erdt"/></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Lab</label><input type="text" id="edit_rep_lab"/></div>
-      <div class="form-group"><label>Key Finding</label><input type="text" id="edit_rep_finding"/></div>
+    <div class="fr">
+      <div class="fg"><label>Lab</label><input type="text" id="erl"/></div>
+      <div class="fg"><label>Key Finding</label><input type="text" id="erf"/></div>
     </div>
-    <div class="form-group" style="margin-bottom:12px;"><label>Google Drive Link</label><input type="url" id="edit_rep_link"/></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('editRepModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="updateReport()">💾 Save Changes</button>
+    <div class="fg" style="margin-bottom:9px"><label>Google Drive Link</label><input type="url" id="erk"/></div>
+    <div class="ma">
+      <button class="btn bg" onclick="cm('erm')">Cancel</button>
+      <button class="btn bp" onclick="updRep()">💾 Save</button>
     </div>
   </div>
 </div>
 
-<!-- CONFIG MODAL -->
-<div class="modal-overlay" id="configModal">
-  <div class="modal">
-    <div class="modal-title">⚙️ Connect to Google Sheets</div>
-    <div class="config-field">
-      <label>Apps Script Web App URL</label>
-      <input type="url" id="configUrl" placeholder="https://script.google.com/macros/s/.../exec"/>
-      <div class="config-note">Paste your Google Apps Script deployment URL here. See SETUP.md for step-by-step instructions on how to create this.</div>
-    </div>
-    <div class="config-field">
-      <label>Family Members (comma separated)</label>
-      <input type="text" id="configMembers" placeholder="Papa, Mummy, Me, Child"/>
-      <div class="config-note">These names will appear in dropdowns throughout the app.</div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('configModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveConfig()">Save & Connect</button>
-    </div>
-  </div>
-</div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ============================================================
-//  CONFIGURATION — Paste your Apps Script URL in Setup button
-// ============================================================
-let SCRIPT_URL = localStorage.getItem('ht_url') || '';
-let MEMBERS = (localStorage.getItem('ht_members') || 'Papa,Mummy,Me,Child').split(',').map(s=>s.trim()).filter(Boolean);
+// ── Simple SHA-256 hash (password never stored plain) ──
+async function h(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
 
-// In-memory data store
-let medData = [];   // [{row, member, name, qty, dose, date, doctor, notes}]
-let repData = [];   // [{row, member, test, date, lab, finding, link}]
-let activeMember = '';
-let currentPage = 'dashboard';
+let URL_='',KEY_='',MBR=[];
+let meds=[],reps=[],curMbr='All',curPg='dashboard';
 
-// ============================================================
-//  INIT
-// ============================================================
-window.addEventListener('DOMContentLoaded', () => {
-  populateMemberDropdowns();
-  setDefaultDates();
-  if (!SCRIPT_URL) {
-    document.getElementById('setupBanner').classList.add('visible');
-    setSyncStatus('err', 'Not connected');
-  } else {
-    loadAll();
-  }
+// ════════════════ BOOT ════════════════
+window.addEventListener('DOMContentLoaded',async()=>{
+  const sess=localStorage.getItem('ht_s'),exp=+(localStorage.getItem('ht_e')||0);
+  if(!localStorage.getItem('ht_url')) document.getElementById('setupPanel').classList.add('open');
+  if(sess&&exp>Date.now()) boot();
 });
 
-function setDefaultDates() {
-  const today = new Date().toISOString().split('T')[0];
-  ['med_date','rep_date'].forEach(id => { const el = document.getElementById(id); if(el) el.value = today; });
+async function doLogin(){
+  const p=document.getElementById('pw').value,e=document.getElementById('loginErr'),stored=localStorage.getItem('ht_p');
+  if(!p){e.textContent='Enter your password.';return}
+  if(!stored){e.textContent='No password set. Use setup below.';return}
+  if(!localStorage.getItem('ht_url')){e.textContent='Not configured. Use setup below.';return}
+  document.getElementById('loginBtn').disabled=true;document.getElementById('loginBtn').textContent='Checking…';
+  const entered=await h(p);
+  if(entered!==stored){
+    document.getElementById('pw').classList.add('shake');
+    setTimeout(()=>document.getElementById('pw').classList.remove('shake'),450);
+    e.textContent='❌ Wrong password.';
+    document.getElementById('loginBtn').disabled=false;document.getElementById('loginBtn').textContent='Unlock →';return;
+  }
+  const rem=document.getElementById('rem').checked;
+  localStorage.setItem('ht_s','ok');
+  localStorage.setItem('ht_e',(Date.now()+(rem?7*86400000:3600000)).toString());
+  document.getElementById('loginBtn').disabled=false;document.getElementById('loginBtn').textContent='Unlock →';
+  boot();
 }
 
-function populateMemberDropdowns() {
-  const selects = ['med_member','rep_member','edit_med_member','edit_rep_member'];
-  selects.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = '<option value="">Select member...</option>' + MEMBERS.map(m=>`<option value="${m}">${m}</option>`).join('');
-  });
-  // Member filter tabs
-  const tabs = document.getElementById('memberTabs');
-  tabs.innerHTML = ['All',...MEMBERS].map((m,i) =>
-    `<div class="member-pill ${i===0?'active':''}" onclick="filterByMember('${m}',this)">${m==='All'?'👥 All':m}</div>`
-  ).join('');
-  activeMember = 'All';
+function boot(){
+  URL_=localStorage.getItem('ht_url')||'';
+  KEY_=localStorage.getItem('ht_k')||'';
+  MBR=(localStorage.getItem('ht_m')||'Papa,Mummy,Me,Child').split(',').map(s=>s.trim()).filter(Boolean);
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').classList.add('on');
+  popDrops();setDates();loadAll();
 }
 
-// ============================================================
-//  NAVIGATION
-// ============================================================
-function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+function logout(){
+  localStorage.removeItem('ht_s');localStorage.removeItem('ht_e');
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appShell').classList.remove('on');
+  document.getElementById('pw').value='';document.getElementById('loginErr').textContent='';
+}
+
+// ── Setup ──
+function toggleSetup(){document.getElementById('setupPanel').classList.toggle('open')}
+async function saveSetup(){
+  const u=v('sUrl').trim(),k=v('sSecret').trim(),p=v('sPw').trim(),m=v('sMembers').trim();
+  if(!u||!k||!p){alert('Fill URL, Secret Key and Password.');return}
+  const ph=await h(p);
+  localStorage.setItem('ht_url',u);localStorage.setItem('ht_k',k);
+  localStorage.setItem('ht_p',ph);localStorage.setItem('ht_m',m||'Papa,Mummy,Me,Child');
+  document.getElementById('setupPanel').classList.remove('open');
+  showToast('✅ Setup saved! Now enter your password.','success');
+}
+
+// ════════════════ NAV ════════════════
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if (el) el.classList.add('active');
-  currentPage = id;
-  if (id === 'members') renderMemberView();
-  if (id === 'refills') renderRefills();
-  if (id === 'reports') renderReports();
+  if(el)el.classList.add('active');
+  else document.querySelectorAll('.tab').forEach(t=>{if((t.getAttribute('onclick')||'').includes("'"+id+"'"))t.classList.add('active')});
+  curPg=id;
+  if(id==='members')renderMbr();
+  if(id==='refills')renderRefills();
+  if(id==='reports')renderReps();
 }
 
-// ============================================================
-//  SYNC STATUS
-// ============================================================
-function setSyncStatus(state, text) {
-  const dot = document.getElementById('syncDot');
-  const txt = document.getElementById('syncText');
-  dot.className = 'sync-dot ' + state;
-  txt.textContent = text;
-}
-
-// ============================================================
-//  API CALLS
-// ============================================================
-async function api(params) {
-  if (!SCRIPT_URL) { showToast('Please connect to Google Sheets first (Setup button)', 'error'); throw new Error('No URL'); }
-  const url = SCRIPT_URL + '?' + new URLSearchParams(params);
-  const res = await fetch(url);
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
-}
-
-async function apiPost(body) {
-  if (!SCRIPT_URL) { showToast('Please connect to Google Sheets first (Setup button)', 'error'); throw new Error('No URL'); }
-  const res = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(body)
+function popDrops(){
+  ['mm','rm','emem','erem'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML='<option value="">Select…</option>'+MBR.map(m=>`<option value="${m}">${m}</option>`).join('');
   });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  const t=document.getElementById('mtabs');
+  if(t)t.innerHTML=['All',...MBR].map((m,i)=>`<div class="mp ${i===0?'active':''}" onclick="filMbr('${m}',this)">${m==='All'?'👥 All':m}</div>`).join('');
+  curMbr='All';
 }
 
-// ============================================================
-//  LOAD ALL DATA
-// ============================================================
-async function loadAll() {
-  setSyncStatus('loading', 'Syncing...');
-  try {
-    const [meds, reps] = await Promise.all([
-      api({action:'getMedicines'}),
-      api({action:'getReports'})
-    ]);
-    medData = meds.data || [];
-    repData = reps.data || [];
-    setSyncStatus('ok', 'Connected · ' + new Date().toLocaleTimeString());
-    document.getElementById('setupBanner').classList.remove('visible');
-    renderDashboard();
-    renderMedTable();
-    if (currentPage === 'members') renderMemberView();
-    if (currentPage === 'refills') renderRefills();
-    if (currentPage === 'reports') renderReports();
-  } catch(e) {
-    setSyncStatus('err', 'Connection failed');
-    showToast('Could not connect: ' + e.message, 'error');
-  }
+function setDates(){const d=new Date().toISOString().split('T')[0];['mdt','rdt'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=d})}
+
+// ════════════════ API ════════════════
+function sync(s,t){document.getElementById('dot').className='dot '+s;document.getElementById('syncTxt').textContent=t}
+
+async function api(p){
+  p.key=KEY_;const r=await fetch(URL_+'?'+new URLSearchParams(p));
+  const j=await r.json();if(j.error)throw new Error(j.error);return j;
+}
+async function post(b){
+  b.key=KEY_;const r=await fetch(URL_,{method:'POST',body:JSON.stringify(b)});
+  const j=await r.json();if(j.error)throw new Error(j.error);return j;
 }
 
-// ============================================================
-//  DASHBOARD
-// ============================================================
-function renderDashboard() {
-  const low = medData.filter(m => daysLeft(m) !== null && daysLeft(m) <= 7);
-  document.getElementById('statLow').textContent = low.length;
-  document.getElementById('statTotal').textContent = medData.length;
-  document.getElementById('statReports').textContent = repData.length;
-
-  // Next refill
-  const withDays = medData.filter(m => daysLeft(m) !== null).sort((a,b) => daysLeft(a)-daysLeft(b));
-  if (withDays.length) {
-    const next = withDays[0];
-    const d = daysLeft(next);
-    document.getElementById('statNext').textContent = d <= 0 ? 'TODAY' : d + ' days';
-    document.getElementById('statNextSub').textContent = next.name + ' · ' + next.member;
-  } else {
-    document.getElementById('statNext').textContent = '—';
-    document.getElementById('statNextSub').textContent = 'No data';
-  }
-
-  // Alert bar
-  if (low.length > 0) {
-    document.getElementById('alertBar').classList.add('visible');
-    document.getElementById('alertList').innerHTML = low.map(m => {
-      const d = daysLeft(m);
-      const rd = refillDate(m);
-      return `<li><strong>${m.name}</strong> (${m.member}) — ${m.qty} left, ~${d} days · Refill by ${rd}</li>`;
-    }).join('');
-  } else {
-    document.getElementById('alertBar').classList.remove('visible');
-  }
-
-  // Dashboard table
-  const tbody = document.getElementById('dashMedTable');
-  if (!medData.length) { tbody.innerHTML = '<tr><td colspan="6" class="loading-row"><div class="empty-state"><div class="emoji">💊</div>No medicines added yet</div></td></tr>'; return; }
-  tbody.innerHTML = medData.map(m => {
-    const d = daysLeft(m);
-    return `<tr>
-      <td><strong>${esc(m.name)}</strong></td>
-      <td><span class="chip">${esc(m.member)}</span></td>
-      <td>${m.qty}</td>
-      <td>${esc(m.dose)}</td>
-      <td>${d !== null ? d : '—'}</td>
-      <td>${statusBadge(d)}</td>
-    </tr>`;
-  }).join('');
+async function loadAll(){
+  sync('spin','Syncing…');
+  try{
+    const[a,b]=await Promise.all([api({action:'getMedicines'}),api({action:'getReports'})]);
+    meds=a.data||[];reps=b.data||[];
+    sync('ok','Live · '+new Date().toLocaleTimeString());
+    renderDash();renderMeds();
+    if(curPg==='members')renderMbr();
+    if(curPg==='refills')renderRefills();
+    if(curPg==='reports')renderReps();
+  }catch(e){sync('err','Failed');showToast('Error: '+e.message,'error')}
 }
 
-// ============================================================
-//  MEDICINES TABLE
-// ============================================================
-function renderMedTable(data) {
-  data = data || medData;
-  const tbody = document.getElementById('medTable');
-  if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" class="loading-row"><div class="empty-state"><div class="emoji">💊</div>No medicines yet</div></td></tr>'; return; }
-  tbody.innerHTML = data.map(m => {
-    const d = daysLeft(m);
-    const rd = refillDate(m);
-    return `<tr>
-      <td><strong>${esc(m.name)}</strong>${m.doctor?`<br><span style="font-size:0.72rem;color:var(--muted)">Dr. ${esc(m.doctor)}</span>`:''}${m.notes?`<br><span style="font-size:0.72rem;color:var(--muted)">${esc(m.notes)}</span>`:''}
-      </td>
-      <td><span class="chip">${esc(m.member)}</span></td>
-      <td>${m.qty}</td>
-      <td>${esc(m.dose)}</td>
-      <td>${d !== null ? d : '—'}</td>
-      <td>${rd}</td>
-      <td>${statusBadge(d)}</td>
-      <td style="white-space:nowrap;">
-        <button class="action-btn edit" onclick='openEditMed(${JSON.stringify(m)})'>✏️ Edit</button>
-        <button class="action-btn del" onclick="deleteMed(${m.row},'${esc(m.name)}')">🗑 Delete</button>
-      </td>
-    </tr>`;
-  }).join('');
+// ════════════════ RENDER ════════════════
+function renderDash(){
+  const low=meds.filter(m=>dl(m)!==null&&dl(m)<=7);
+  document.getElementById('sLow').textContent=low.length;
+  document.getElementById('sTot').textContent=meds.length;
+  document.getElementById('sRep').textContent=reps.length;
+  const s=meds.filter(m=>dl(m)!==null).sort((a,b)=>dl(a)-dl(b));
+  if(s.length){const d=dl(s[0]);document.getElementById('sNext').textContent=d<=0?'TODAY':d+'d';document.getElementById('sNextS').textContent=s[0].name+' · '+s[0].member}
+  else{document.getElementById('sNext').textContent='—';document.getElementById('sNextS').textContent='No data'}
+  if(low.length){
+    document.getElementById('abar').classList.add('on');
+    document.getElementById('alist').innerHTML=low.map(m=>`<li><strong>${e(m.name)}</strong> (${e(m.member)}) — ${m.qty} left, ~${dl(m)} days · Refill by ${rd(m)}</li>`).join('');
+  }else document.getElementById('abar').classList.remove('on');
+  const tb=document.getElementById('dtb');
+  if(!meds.length){tb.innerHTML='<tr><td colspan="6"><div class="es"><div class="em">💊</div>No medicines added yet</div></td></tr>';return}
+  tb.innerHTML=meds.map(m=>`<tr><td><strong>${e(m.name)}</strong></td><td><span class="chip">${e(m.member)}</span></td><td>${m.qty}</td><td>${e(m.dose)}</td><td>${dl(m)!==null?dl(m):'—'}</td><td>${sb(dl(m))}</td></tr>`).join('');
 }
 
-// ============================================================
-//  MEMBER VIEW
-// ============================================================
-function filterByMember(member, el) {
-  document.querySelectorAll('.member-pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  activeMember = member;
-  renderMemberView();
+function renderMeds(data){
+  data=data||meds;const tb=document.getElementById('mtb');
+  if(!data.length){tb.innerHTML='<tr><td colspan="8"><div class="es"><div class="em">💊</div>No medicines yet</div></td></tr>';return}
+  tb.innerHTML=data.map(m=>`<tr>
+    <td><strong>${e(m.name)}</strong>${m.doctor?`<br><small style="color:var(--muted)">Dr.${e(m.doctor)}</small>`:''}${m.notes?`<br><small style="color:var(--muted)">${e(m.notes)}</small>`:''}
+    </td><td><span class="chip">${e(m.member)}</span></td><td>${m.qty}</td><td>${e(m.dose)}</td>
+    <td>${dl(m)!==null?dl(m):'—'}</td><td>${rd(m)}</td><td>${sb(dl(m))}</td>
+    <td style="white-space:nowrap">
+      <button class="ab e" onclick='oem(${JSON.stringify(m)})'>✏️ Edit</button>
+      <button class="ab d" onclick="delM(${m.row},'${e(m.name)}')">🗑</button>
+    </td></tr>`).join('');
 }
 
-function renderMemberView() {
-  const data = activeMember === 'All' ? medData : medData.filter(m => m.member === activeMember);
-  const title = activeMember === 'All' ? '👥 All Members — Medicines' : `${activeMember}'s Medicines`;
-  document.getElementById('memberCardTitle').textContent = title;
-  const tbody = document.getElementById('memberMedTable');
-  if (!data.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="emoji">💊</div>No medicines for this member</div></td></tr>'; return; }
-  tbody.innerHTML = data.map(m => {
-    const d = daysLeft(m);
-    const rd = refillDate(m);
-    return `<tr>
-      <td><strong>${esc(m.name)}</strong>${!['All'].includes(activeMember)?'':` <span class="chip" style="margin-left:4px">${esc(m.member)}</span>`}</td>
-      <td>${m.qty}</td>
-      <td>${esc(m.dose)}</td>
-      <td>${d !== null ? d : '—'}</td>
-      <td>${rd}</td>
-      <td>${statusBadge(d)}</td>
-      <td style="white-space:nowrap;">
-        <button class="action-btn edit" onclick='openEditMed(${JSON.stringify(m)})'>✏️ Edit</button>
-        <button class="action-btn del" onclick="deleteMed(${m.row},'${esc(m.name)}')">🗑</button>
-      </td>
-    </tr>`;
-  }).join('');
+function filMbr(mbr,el){document.querySelectorAll('.mp').forEach(p=>p.classList.remove('active'));el.classList.add('active');curMbr=mbr;renderMbr()}
+function renderMbr(){
+  const data=curMbr==='All'?meds:meds.filter(m=>m.member===curMbr);
+  document.getElementById('mct').textContent=curMbr==='All'?'👥 All Members':curMbr+"'s Medicines";
+  const tb=document.getElementById('mmtb');
+  if(!data.length){tb.innerHTML='<tr><td colspan="7"><div class="es"><div class="em">💊</div>No medicines</div></td></tr>';return}
+  tb.innerHTML=data.map(m=>`<tr>
+    <td><strong>${e(m.name)}</strong>${curMbr==='All'?` <span class="chip">${e(m.member)}</span>`:''}</td>
+    <td>${m.qty}</td><td>${e(m.dose)}</td><td>${dl(m)!==null?dl(m):'—'}</td><td>${rd(m)}</td><td>${sb(dl(m))}</td>
+    <td style="white-space:nowrap">
+      <button class="ab e" onclick='oem(${JSON.stringify(m)})'>✏️</button>
+      <button class="ab d" onclick="delM(${m.row},'${e(m.name)}')">🗑</button>
+    </td></tr>`).join('');
 }
 
-// ============================================================
-//  REFILLS
-// ============================================================
-function renderRefills() {
-  const list = document.getElementById('refillList');
-  const withDays = medData.filter(m => daysLeft(m) !== null).sort((a,b) => daysLeft(a)-daysLeft(b));
-  if (!withDays.length) { list.innerHTML = '<div class="empty-state"><div class="emoji">📅</div>No medicines with refill schedule</div>'; return; }
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  list.innerHTML = withDays.map(m => {
-    const d = daysLeft(m);
-    const rd = new Date(); rd.setDate(rd.getDate() + d);
-    const dayN = rd.getDate(); const mon = MONTHS[rd.getMonth()];
-    const color = d <= 3 ? 'var(--danger)' : d <= 7 ? 'var(--warn)' : 'var(--accent2)';
-    return `<div class="refill-item">
-      <div class="refill-date-box">
-        <div class="rday">${dayN}</div>
-        <div class="rmon">${mon}</div>
-      </div>
-      <div class="refill-info">
-        <h4>${esc(m.name)}</h4>
-        <p><span class="chip">${esc(m.member)}</span> · ${esc(m.dose)}/day · ${m.qty} tablets left</p>
-      </div>
-      <div class="days-pill" style="color:${color}">${d}d</div>
+function renderRefills(){
+  const l=document.getElementById('rilist');
+  const data=meds.filter(m=>dl(m)!==null).sort((a,b)=>dl(a)-dl(b));
+  if(!data.length){l.innerHTML='<div class="es"><div class="em">📅</div>No refill data</div>';return}
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  l.innerHTML=data.map(m=>{
+    const d=dl(m),dt=new Date();dt.setDate(dt.getDate()+d);
+    const col=d<=3?'var(--danger)':d<=7?'var(--warn)':'var(--accent2)';
+    return `<div class="ri">
+      <div class="rdb"><div class="rdy">${dt.getDate()}</div><div class="rmn">${M[dt.getMonth()]}</div></div>
+      <div class="rinfo"><h4>${e(m.name)}</h4><p><span class="chip">${e(m.member)}</span> · ${e(m.dose)}/day · ${m.qty} left</p></div>
+      <div class="dp" style="color:${col}">${d}d</div>
     </div>`;
   }).join('');
 }
 
-// ============================================================
-//  REPORTS
-// ============================================================
-function renderReports() {
-  const grid = document.getElementById('reportGrid');
-  if (!repData.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="emoji">🧪</div>No reports saved yet</div>'; return; }
-  const icons = {blood:'🩸',ecg:'❤️',thyroid:'🦋',bone:'🦴',xray:'🩻',scan:'🔬',sugar:'🩸',urine:'🧫',eye:'👁',dental:'🦷'};
-  function getIcon(name) {
-    const n = name.toLowerCase();
-    for (const k in icons) if (n.includes(k)) return icons[k];
-    return '🧪';
-  }
-  grid.innerHTML = repData.map(r => `
-    <div class="report-card">
-      <div class="rtype">${getIcon(r.test)}</div>
-      <h4>${esc(r.test)}</h4>
-      <div><span class="chip">${esc(r.member)}</span></div>
-      <div class="rmeta">📅 ${esc(r.date)}${r.lab ? ' · ' + esc(r.lab) : ''}</div>
-      ${r.finding ? `<div class="rfinding">📋 ${esc(r.finding)}</div>` : ''}
-      <div class="report-actions">
-        ${r.link ? `<a href="${esc(r.link)}" target="_blank" class="open-link">🔗 Open Report</a>` : ''}
-        <button class="action-btn edit" onclick='openEditRep(${JSON.stringify(r)})'>✏️</button>
-        <button class="action-btn del" onclick="deleteRep(${r.row},'${esc(r.test)}')">🗑</button>
+function renderReps(){
+  const g=document.getElementById('rg');
+  if(!reps.length){g.innerHTML='<div class="es" style="grid-column:1/-1"><div class="em">🧪</div>No reports yet</div>';return}
+  const ic={blood:'🩸',ecg:'❤️',thyroid:'🦋',bone:'🦴',xray:'🩻',scan:'🔬',sugar:'🩸'};
+  function ico(n){n=n.toLowerCase();for(const k in ic)if(n.includes(k))return ic[k];return'🧪'}
+  g.innerHTML=reps.map(r=>`
+    <div class="rc">
+      <div class="ric">${ico(r.test)}</div>
+      <h4>${e(r.test)}</h4>
+      <div><span class="chip">${e(r.member)}</span></div>
+      <div class="rm">📅 ${e(r.date)}${r.lab?' · '+e(r.lab):''}</div>
+      ${r.finding?`<div class="rf">📋 ${e(r.finding)}</div>`:''}
+      <div class="ra">
+        ${r.link?`<a href="${e(r.link)}" target="_blank" class="ol">🔗 Open</a>`:''}
+        <button class="ab e" onclick='orem(${JSON.stringify(r)})'>✏️ Edit</button>
+        <button class="ab d" onclick="delR(${r.row},'${e(r.test)}')">🗑</button>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-// ============================================================
-//  SAVE MEDICINE
-// ============================================================
-async function saveMedicine() {
-  const member = document.getElementById('med_member').value;
-  const name   = document.getElementById('med_name').value.trim();
-  const qty    = document.getElementById('med_qty').value;
-  const dose   = document.getElementById('med_dose').value.trim();
-  const date   = document.getElementById('med_date').value;
-  const doctor = document.getElementById('med_doctor').value.trim();
-  const notes  = document.getElementById('med_notes').value.trim();
-  if (!member||!name||!qty||!dose||!date) { showToast('Please fill all required fields (*)', 'error'); return; }
-  const btn = document.getElementById('saveMedBtn');
-  btn.disabled = true; btn.textContent = 'Saving...';
-  try {
-    await apiPost({action:'addMedicine', member, name, qty:parseInt(qty), dose, date, doctor, notes});
-    showToast('✅ Medicine saved!', 'success');
-    clearMedForm();
-    await loadAll();
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-  btn.disabled = false; btn.textContent = '💾 Save Medicine';
+// ════════════════ CRUD ════════════════
+async function saveMed(){
+  const mem=v('mm'),nm=v('mn').trim(),qty=v('mq'),dose=v('md').trim(),dt=v('mdt'),doc=v('mdr').trim(),nt=v('mnt').trim();
+  if(!mem||!nm||!qty||!dose||!dt){showToast('Fill all required (*) fields','error');return}
+  const b=document.getElementById('smb');b.disabled=true;b.textContent='Saving…';
+  try{await post({action:'addMedicine',member:mem,name:nm,qty:+qty,dose,date:dt,doctor:doc,notes:nt});showToast('✅ Saved!','success');clearMed();await loadAll()}
+  catch(ex){showToast('Error: '+ex.message,'error')}
+  b.disabled=false;b.textContent='💾 Save Medicine';
+}
+function clearMed(){['mm','mn','mq','md','mdr','mnt'].forEach(i=>document.getElementById(i).value='');setDates()}
+
+function oem(m){
+  sv('emr',m.row);sv('emem',m.member);sv('emn',m.name);sv('emq',m.qty);sv('emd',m.dose);sv('emdt',m.date);sv('emdr',m.doctor||'');sv('emnt',m.notes||'');
+  document.getElementById('emm').classList.add('open');
+}
+async function updMed(){
+  const row=v('emr'),mem=v('emem'),nm=v('emn').trim(),qty=v('emq'),dose=v('emd').trim(),dt=v('emdt'),doc=v('emdr').trim(),nt=v('emnt').trim();
+  if(!mem||!nm||!qty||!dose||!dt){showToast('Fill all fields','error');return}
+  try{await post({action:'updateMedicine',row:+row,member:mem,name:nm,qty:+qty,dose,date:dt,doctor:doc,notes:nt});showToast('✅ Updated!','success');cm('emm');await loadAll()}
+  catch(ex){showToast('Error: '+ex.message,'error')}
+}
+async function delM(row,nm){
+  if(!confirm(`Delete "${nm}"?`))return;
+  try{await post({action:'deleteMedicine',row:+row});showToast('🗑 Deleted','success');await loadAll()}
+  catch(ex){showToast('Error: '+ex.message,'error')}
 }
 
-function clearMedForm() {
-  ['med_member','med_name','med_qty','med_dose','med_doctor','med_notes'].forEach(id => document.getElementById(id).value = '');
-  setDefaultDates();
+async function saveRep(){
+  const mem=v('rm'),tst=v('rn').trim(),dt=v('rdt'),lab=v('rl').trim(),fnd=v('rf').trim(),lnk=v('rk').trim();
+  if(!mem||!tst||!dt||!lnk){showToast('Fill all required (*) fields','error');return}
+  const b=document.getElementById('srb');b.disabled=true;b.textContent='Saving…';
+  try{await post({action:'addReport',member:mem,test:tst,date:dt,lab,finding:fnd,link:lnk});showToast('✅ Saved!','success');clearRep();await loadAll()}
+  catch(ex){showToast('Error: '+ex.message,'error')}
+  b.disabled=false;b.textContent='💾 Save Report';
+}
+function clearRep(){['rm','rn','rl','rf','rk'].forEach(i=>document.getElementById(i).value='');setDates()}
+
+function orem(r){
+  sv('err',r.row);sv('erem',r.member);sv('ern',r.test);sv('erdt',r.date);sv('erl',r.lab||'');sv('erf',r.finding||'');sv('erk',r.link||'');
+  document.getElementById('erm').classList.add('open');
+}
+async function updRep(){
+  const row=v('err'),mem=v('erem'),tst=v('ern').trim(),dt=v('erdt'),lab=v('erl').trim(),fnd=v('erf').trim(),lnk=v('erk').trim();
+  try{await post({action:'updateReport',row:+row,member:mem,test:tst,date:dt,lab,finding:fnd,link:lnk});showToast('✅ Updated!','success');cm('erm');await loadAll()}
+  catch(ex){showToast('Error: '+ex.message,'error')}
+}
+async function delR(row,nm){
+  if(!confirm(`Delete report "${nm}"?`))return;
+  try{await post({action:'deleteReport',row:+row});showToast('🗑 Deleted','success');await loadAll()}
+  catch(ex){showToast('Error: '+ex.message,'error')}
 }
 
-// ============================================================
-//  SAVE REPORT
-// ============================================================
-async function saveReport() {
-  const member  = document.getElementById('rep_member').value;
-  const test    = document.getElementById('rep_name').value.trim();
-  const date    = document.getElementById('rep_date').value;
-  const lab     = document.getElementById('rep_lab').value.trim();
-  const finding = document.getElementById('rep_finding').value.trim();
-  const link    = document.getElementById('rep_link').value.trim();
-  if (!member||!test||!date||!link) { showToast('Please fill all required fields (*)', 'error'); return; }
-  const btn = document.getElementById('saveRepBtn');
-  btn.disabled = true; btn.textContent = 'Saving...';
-  try {
-    await apiPost({action:'addReport', member, test, date, lab, finding, link});
-    showToast('✅ Report saved!', 'success');
-    clearRepForm();
-    await loadAll();
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-  btn.disabled = false; btn.textContent = '💾 Save Report';
-}
-
-function clearRepForm() {
-  ['rep_member','rep_name','rep_lab','rep_finding','rep_link'].forEach(id => document.getElementById(id).value = '');
-  setDefaultDates();
-}
-
-// ============================================================
-//  EDIT MEDICINE
-// ============================================================
-function openEditMed(m) {
-  document.getElementById('edit_med_row').value = m.row;
-  document.getElementById('edit_med_member').value = m.member;
-  document.getElementById('edit_med_name').value = m.name;
-  document.getElementById('edit_med_qty').value = m.qty;
-  document.getElementById('edit_med_dose').value = m.dose;
-  document.getElementById('edit_med_date').value = m.date;
-  document.getElementById('edit_med_doctor').value = m.doctor || '';
-  document.getElementById('edit_med_notes').value = m.notes || '';
-  document.getElementById('editMedModal').classList.add('open');
-}
-
-async function updateMedicine() {
-  const row    = document.getElementById('edit_med_row').value;
-  const member = document.getElementById('edit_med_member').value;
-  const name   = document.getElementById('edit_med_name').value.trim();
-  const qty    = document.getElementById('edit_med_qty').value;
-  const dose   = document.getElementById('edit_med_dose').value.trim();
-  const date   = document.getElementById('edit_med_date').value;
-  const doctor = document.getElementById('edit_med_doctor').value.trim();
-  const notes  = document.getElementById('edit_med_notes').value.trim();
-  if (!member||!name||!qty||!dose||!date) { showToast('Fill all required fields', 'error'); return; }
-  try {
-    await apiPost({action:'updateMedicine', row:parseInt(row), member, name, qty:parseInt(qty), dose, date, doctor, notes});
-    showToast('✅ Updated!', 'success');
-    closeModal('editMedModal');
-    await loadAll();
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-}
-
-async function deleteMed(row, name) {
-  if (!confirm(`Delete "${name}"?`)) return;
-  try {
-    await apiPost({action:'deleteMedicine', row:parseInt(row)});
-    showToast('🗑 Deleted', 'success');
-    await loadAll();
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-}
-
-// ============================================================
-//  EDIT REPORT
-// ============================================================
-function openEditRep(r) {
-  document.getElementById('edit_rep_row').value = r.row;
-  document.getElementById('edit_rep_member').value = r.member;
-  document.getElementById('edit_rep_name').value = r.test;
-  document.getElementById('edit_rep_date').value = r.date;
-  document.getElementById('edit_rep_lab').value = r.lab || '';
-  document.getElementById('edit_rep_finding').value = r.finding || '';
-  document.getElementById('edit_rep_link').value = r.link || '';
-  document.getElementById('editRepModal').classList.add('open');
-}
-
-async function updateReport() {
-  const row     = document.getElementById('edit_rep_row').value;
-  const member  = document.getElementById('edit_rep_member').value;
-  const test    = document.getElementById('edit_rep_name').value.trim();
-  const date    = document.getElementById('edit_rep_date').value;
-  const lab     = document.getElementById('edit_rep_lab').value.trim();
-  const finding = document.getElementById('edit_rep_finding').value.trim();
-  const link    = document.getElementById('edit_rep_link').value.trim();
-  try {
-    await apiPost({action:'updateReport', row:parseInt(row), member, test, date, lab, finding, link});
-    showToast('✅ Updated!', 'success');
-    closeModal('editRepModal');
-    await loadAll();
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-}
-
-async function deleteRep(row, name) {
-  if (!confirm(`Delete report "${name}"?`)) return;
-  try {
-    await apiPost({action:'deleteReport', row:parseInt(row)});
-    showToast('🗑 Deleted', 'success');
-    await loadAll();
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-}
-
-// ============================================================
-//  CONFIG
-// ============================================================
-function openConfig() {
-  document.getElementById('configUrl').value = SCRIPT_URL;
-  document.getElementById('configMembers').value = MEMBERS.join(', ');
-  document.getElementById('configModal').classList.add('open');
-}
-
-function saveConfig() {
-  const url = document.getElementById('configUrl').value.trim();
-  const members = document.getElementById('configMembers').value.split(',').map(s=>s.trim()).filter(Boolean);
-  if (!url) { showToast('Please enter a valid URL', 'error'); return; }
-  SCRIPT_URL = url;
-  MEMBERS = members;
-  localStorage.setItem('ht_url', url);
-  localStorage.setItem('ht_members', members.join(','));
-  populateMemberDropdowns();
-  closeModal('configModal');
-  loadAll();
-}
-
-// ============================================================
-//  HELPERS
-// ============================================================
-function daysLeft(m) {
-  const dose = parseFloat(m.dose);
-  if (!dose || isNaN(dose)) return null;
-  return Math.max(0, Math.floor(parseInt(m.qty) / dose));
-}
-
-function refillDate(m) {
-  const d = daysLeft(m);
-  if (d === null) return '—';
-  const dt = new Date(); dt.setDate(dt.getDate() + d);
-  return dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
-}
-
-function statusBadge(d) {
-  if (d === null) return '<span class="badge warn">On demand</span>';
-  if (d <= 3) return `<span class="badge low">🔴 ${d}d left</span>`;
-  if (d <= 7) return `<span class="badge warn">⚠️ ${d}d left</span>`;
-  return `<span class="badge ok">✓ ${d}d</span>`;
-}
-
-function esc(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-// Close modal on overlay click
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
-});
-
-function showToast(msg, type='success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show ' + type;
-  setTimeout(() => t.classList.remove('show'), 3500);
-}
+// ════════════════ HELPERS ════════════════
+function dl(m){const d=parseFloat(m.dose);if(!d||isNaN(d))return null;return Math.max(0,Math.floor(+m.qty/d))}
+function rd(m){const d=dl(m);if(d===null)return'—';const dt=new Date();dt.setDate(dt.getDate()+d);return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+function sb(d){if(d===null)return'<span class="badge warn">On demand</span>';if(d<=3)return`<span class="badge low">🔴 ${d}d</span>`;if(d<=7)return`<span class="badge warn">⚠️ ${d}d</span>`;return`<span class="badge ok">✓ ${d}d</span>`}
+function e(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function v(id){return document.getElementById(id).value}
+function sv(id,val){document.getElementById(id).value=val}
+function cm(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',ex=>{if(ex.target===o)o.classList.remove('open')}));
+function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.classList.remove('show'),3500)}
 </script>
-
 </body>
 </html>
