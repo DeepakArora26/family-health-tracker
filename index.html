@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Family Health Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #f5f0eb;
+    --card: #fffdf9;
+    --accent: #c84b31;
+    --accent2: #2b6777;
+    --gold: #e8a838;
+    --green: #3a7d44;
+    --text: #1a1a2e;
+    --muted: #6b7280;
+    --border: #e5ddd4;
+    --shadow: 0 2px 20px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* TOP BAR */
+  header {
+    background: var(--text);
+    color: white;
+    padding: 18px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  header h1 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; letter-spacing: -0.3px; }
+  header h1 span { color: var(--gold); }
+  .header-date { font-size: 0.8rem; color: #aaa; }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex; gap: 0; background: white;
+    border-bottom: 2px solid var(--border);
+    padding: 0 32px;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 14px 22px; cursor: pointer; font-size: 0.9rem; font-weight: 500;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+    color: var(--muted); transition: all 0.2s; white-space: nowrap;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* MAIN */
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--card); border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 22px 26px; margin-bottom: 20px;
+  }
+  .card-title { font-family: 'DM Serif Display', serif; font-size: 1.15rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title .icon { font-size: 1.2rem; }
+
+  /* SUMMARY GRID */
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--card); border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  .stat-card .label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+  .stat-card .value { font-family: 'DM Serif Display', serif; font-size: 2.2rem; line-height: 1; }
+  .stat-card .sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+  .stat-card.alert .value { color: var(--accent); }
+  .stat-card.ok .value { color: var(--green); }
+  .stat-card.warn .value { color: var(--gold); }
+  .stat-card.info .value { color: var(--accent2); }
+
+  /* ALERT BANNER */
+  .alert-banner {
+    background: #fff3cd; border: 1px solid #f0c040;
+    border-radius: 10px; padding: 14px 18px;
+    margin-bottom: 20px; display: flex; align-items: flex-start; gap: 12px;
+  }
+  .alert-banner .icon { font-size: 1.3rem; margin-top: 1px; }
+  .alert-banner strong { display: block; margin-bottom: 4px; font-size: 0.92rem; }
+  .alert-banner ul { padding-left: 18px; font-size: 0.85rem; color: #555; }
+
+  /* MEDICINE TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th { text-align: left; padding: 10px 14px; background: #f0ebe3; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 600; }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #faf7f2; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 600;
+  }
+  .badge.low { background: #fde8e4; color: var(--accent); }
+  .badge.ok { background: #d4edda; color: var(--green); }
+  .badge.warn { background: #fff3cd; color: #856404; }
+  .member-chip {
+    display: inline-block; padding: 2px 9px; border-radius: 20px;
+    font-size: 0.72rem; font-weight: 500; margin-right: 4px;
+    background: #e0eaf8; color: var(--accent2);
+  }
+
+  /* MEMBER CARDS */
+  .member-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  .member-card {
+    background: var(--card); border-radius: 14px; border: 1px solid var(--border);
+    padding: 20px; box-shadow: var(--shadow);
+  }
+  .member-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; margin-bottom: 12px;
+  }
+  .member-card h3 { font-family: 'DM Serif Display', serif; font-size: 1.05rem; }
+  .member-card .role { font-size: 0.78rem; color: var(--muted); margin-bottom: 12px; }
+  .med-list { list-style: none; }
+  .med-list li {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.83rem;
+  }
+  .med-list li:last-child { border-bottom: none; }
+
+  /* REPORTS */
+  .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .report-card {
+    background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+    padding: 18px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .report-card .type-icon { font-size: 1.8rem; }
+  .report-card h4 { font-size: 0.95rem; font-weight: 600; }
+  .report-card .meta { font-size: 0.78rem; color: var(--muted); }
+  .report-card .open-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent2); color: white;
+    border: none; border-radius: 8px; padding: 8px 14px;
+    font-size: 0.82rem; font-weight: 500; cursor: pointer;
+    text-decoration: none; margin-top: 6px; width: fit-content;
+    transition: background 0.2s;
+  }
+  .report-card .open-btn:hover { background: #1e4f5e; }
+
+  /* REFILL TIMELINE */
+  .refill-item {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .refill-item:last-child { border-bottom: none; }
+  .refill-date {
+    min-width: 80px; text-align: center;
+    background: var(--text); color: white;
+    border-radius: 10px; padding: 8px 10px;
+  }
+  .refill-date .day { font-family: 'DM Serif Display', serif; font-size: 1.4rem; line-height: 1; }
+  .refill-date .month { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+  .refill-info h4 { font-size: 0.92rem; font-weight: 600; margin-bottom: 2px; }
+  .refill-info p { font-size: 0.8rem; color: var(--muted); }
+  .days-left { margin-left: auto; text-align: right; }
+  .days-left .num { font-family: 'DM Serif Display', serif; font-size: 1.5rem; }
+  .days-left .lbl { font-size: 0.7rem; color: var(--muted); }
+
+  /* ADD FORM */
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  label { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+  input, select {
+    border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    background: white; transition: border-color 0.2s;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent2); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px; border-radius: 9px; border: none;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #a83828; }
+  .btn-secondary { background: var(--accent2); color: white; }
+  .btn-secondary:hover { background: #1e4f5e; }
+
+  @media (max-width: 600px) {
+    main { padding: 16px 12px; }
+    .tabs { padding: 0 12px; }
+    header { padding: 14px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Family <span>Health</span> Tracker</h1>
+  <div class="header-date">📅 Wednesday, 11 March 2026</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage('dashboard')">🏠 Dashboard</div>
+  <div class="tab" onclick="showPage('medicines')">💊 Medicines</div>
+  <div class="tab" onclick="showPage('members')">👨‍👩‍👧 Members</div>
+  <div class="tab" onclick="showPage('refills')">📅 Refill Schedule</div>
+  <div class="tab" onclick="showPage('reports')">🧪 Reports & Tests</div>
+  <div class="tab" onclick="showPage('add')">➕ Add New</div>
+</div>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="page active">
+    <div class="summary-grid">
+      <div class="stat-card alert">
+        <div class="label">Medicines Low</div>
+        <div class="value">2</div>
+        <div class="sub">Need refill soon</div>
+      </div>
+      <div class="stat-card ok">
+        <div class="label">Total Medicines</div>
+        <div class="value">8</div>
+        <div class="sub">Across 4 members</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="label">Next Refill Due</div>
+        <div class="value">3 days</div>
+        <div class="sub">Metformin – Papa</div>
+      </div>
+      <div class="stat-card info">
+        <div class="label">Test Reports Saved</div>
+        <div class="value">6</div>
+        <div class="sub">On Google Drive</div>
+      </div>
+    </div>
+
+    <div class="alert-banner">
+      <div class="icon">⚠️</div>
+      <div>
+        <strong>Action needed – Low stock alert</strong>
+        <ul>
+          <li>Metformin 500mg (Papa) — only 6 tablets left, refill by 14 March</li>
+          <li>Amlodipine 5mg (Papa) — only 4 tablets left, refill by 15 March</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Quick Medicine Overview</div>
+      <table>
+        <thead><tr><th>Medicine</th><th>Member</th><th>Tablets Left</th><th>Daily Dose</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Metformin 500mg</td><td><span class="member-chip">Papa</span></td><td>6</td><td>2/day</td><td><span class="badge low">⚠ Low</span></td></tr>
+          <tr><td>Amlodipine 5mg</td><td><span class="member-chip">Papa</span></td><td>4</td><td>1/day</td><td><span class="badge low">⚠ Low</span></td></tr>
+          <tr><td>Thyronorm 50mcg</td><td><span class="member-chip">Mummy</span></td><td>28</td><td>1/day</td><td><span class="badge ok">✓ OK</span></td></tr>
+          <tr><td>Calcium + D3</td><td><span class="member-chip">Mummy</span></td><td>45</td><td>1/day</td><td><span class="badge ok">✓ OK</span></td></tr>
+          <tr><td>Vitamin D</td><td><span class="member-chip">Deepak</span></td><td>20</td><td>1/week</td><td><span class="badge ok">✓ OK</span></td></tr>
+          <tr><td>Cetirizine 10mg</td><td><span class="member-chip">Child</span></td><td>12</td><td>As needed</td><td><span class="badge warn">~ 12 days</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MEDICINES PAGE -->
+  <div id="medicines" class="page">
+    <div class="card">
+      <div class="card-title"><span class="icon">💊</span> All Medicines – Stock Status</div>
+      <table>
+        <thead><tr><th>Medicine</th><th>Member</th><th>Qty Left</th><th>Daily Dose</th><th>Days Remaining</th><th>Refill By</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Metformin 500mg</td><td><span class="member-chip">Papa</span></td><td>6 tabs</td><td>2/day</td><td>3 days</td><td>14 Mar 2026</td><td><span class="badge low">Low</span></td></tr>
+          <tr><td>Amlodipine 5mg</td><td><span class="member-chip">Papa</span></td><td>4 tabs</td><td>1/day</td><td>4 days</td><td>15 Mar 2026</td><td><span class="badge low">Low</span></td></tr>
+          <tr><td>Pantoprazole 40mg</td><td><span class="member-chip">Papa</span></td><td>30 tabs</td><td>1/day</td><td>30 days</td><td>10 Apr 2026</td><td><span class="badge ok">OK</span></td></tr>
+          <tr><td>Thyronorm 50mcg</td><td><span class="member-chip">Mummy</span></td><td>28 tabs</td><td>1/day</td><td>28 days</td><td>8 Apr 2026</td><td><span class="badge ok">OK</span></td></tr>
+          <tr><td>Calcium + D3</td><td><span class="member-chip">Mummy</span></td><td>45 tabs</td><td>1/day</td><td>45 days</td><td>25 Apr 2026</td><td><span class="badge ok">OK</span></td></tr>
+          <tr><td>Vitamin D 60K</td><td><span class="member-chip">Deepak</span></td><td>20 tabs</td><td>1/week</td><td>140 days</td><td>28 Jul 2026</td><td><span class="badge ok">OK</span></td></tr>
+          <tr><td>Cetirizine 10mg</td><td><span class="member-chip">Child</span></td><td>12 tabs</td><td>As needed</td><td>~12 days</td><td>23 Mar 2026</td><td><span class="badge warn">Watch</span></td></tr>
+          <tr><td>Paracetamol 500mg</td><td><span class="member-chip">Child</span></td><td>20 tabs</td><td>As needed</td><td>—</td><td>—</td><td><span class="badge ok">OK</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MEMBERS PAGE -->
+  <div id="members" class="page">
+    <div class="member-grid">
+      <div class="member-card">
+        <div class="member-avatar" style="background:#fde8e4;">👴</div>
+        <h3>Papa</h3>
+        <div class="role">Age 68 · Diabetes, BP</div>
+        <ul class="med-list">
+          <li><span>Metformin 500mg</span><span class="badge low">6 left</span></li>
+          <li><span>Amlodipine 5mg</span><span class="badge low">4 left</span></li>
+          <li><span>Pantoprazole 40mg</span><span class="badge ok">30 left</span></li>
+        </ul>
+      </div>
+      <div class="member-card">
+        <div class="member-avatar" style="background:#d4edda;">👵</div>
+        <h3>Mummy</h3>
+        <div class="role">Age 62 · Thyroid, Bone health</div>
+        <ul class="med-list">
+          <li><span>Thyronorm 50mcg</span><span class="badge ok">28 left</span></li>
+          <li><span>Calcium + D3</span><span class="badge ok">45 left</span></li>
+        </ul>
+      </div>
+      <div class="member-card">
+        <div class="member-avatar" style="background:#e0eaf8;">🧑</div>
+        <h3>Deepak</h3>
+        <div class="role">Age ~35 · General wellness</div>
+        <ul class="med-list">
+          <li><span>Vitamin D 60K</span><span class="badge ok">20 left</span></li>
+        </ul>
+      </div>
+      <div class="member-card">
+        <div class="member-avatar" style="background:#fff3cd;">🧒</div>
+        <h3>Child</h3>
+        <div class="role">As needed medicines</div>
+        <ul class="med-list">
+          <li><span>Cetirizine 10mg</span><span class="badge warn">12 left</span></li>
+          <li><span>Paracetamol 500mg</span><span class="badge ok">20 left</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- REFILL SCHEDULE -->
+  <div id="refills" class="page">
+    <div class="card">
+      <div class="card-title"><span class="icon">📅</span> Upcoming Refill Dates</div>
+      <div class="refill-item">
+        <div class="refill-date" style="background:var(--accent)"><div class="day">14</div><div class="month">March</div></div>
+        <div class="refill-info">
+          <h4>Metformin 500mg</h4>
+          <p>Papa · 2 tablets/day · Buy 60 tablets (1 month)</p>
+        </div>
+        <div class="days-left"><div class="num" style="color:var(--accent)">3</div><div class="lbl">days left</div></div>
+      </div>
+      <div class="refill-item">
+        <div class="refill-date" style="background:var(--accent)"><div class="day">15</div><div class="month">March</div></div>
+        <div class="refill-info">
+          <h4>Amlodipine 5mg</h4>
+          <p>Papa · 1 tablet/day · Buy 30 tablets (1 month)</p>
+        </div>
+        <div class="days-left"><div class="num" style="color:var(--accent)">4</div><div class="lbl">days left</div></div>
+      </div>
+      <div class="refill-item">
+        <div class="refill-date"><div class="day">23</div><div class="month">March</div></div>
+        <div class="refill-info">
+          <h4>Cetirizine 10mg</h4>
+          <p>Child · As needed · Buy 20 tablets</p>
+        </div>
+        <div class="days-left"><div class="num" style="color:var(--gold)">12</div><div class="lbl">days left</div></div>
+      </div>
+      <div class="refill-item">
+        <div class="refill-date"><div class="day">08</div><div class="month">April</div></div>
+        <div class="refill-info">
+          <h4>Thyronorm 50mcg</h4>
+          <p>Mummy · 1 tablet/day · Buy 30 tablets</p>
+        </div>
+        <div class="days-left"><div class="num" style="color:var(--green)">28</div><div class="lbl">days left</div></div>
+      </div>
+      <div class="refill-item">
+        <div class="refill-date"><div class="day">10</div><div class="month">April</div></div>
+        <div class="refill-info">
+          <h4>Pantoprazole 40mg</h4>
+          <p>Papa · 1 tablet/day · Buy 30 tablets</p>
+        </div>
+        <div class="days-left"><div class="num" style="color:var(--green)">30</div><div class="lbl">days left</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORTS PAGE -->
+  <div id="reports" class="page">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title"><span class="icon">🧪</span> Test Reports & Medical Documents</div>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:18px;">All reports are stored on Google Drive. Click "Open Report" to view instantly.</p>
+      <div class="report-grid">
+        <div class="report-card">
+          <div class="type-icon">🩸</div>
+          <h4>HbA1c Blood Test</h4>
+          <div class="member-chip">Papa</div>
+          <div class="meta">📅 5 January 2026 · Dr. Sharma Lab</div>
+          <div class="meta">HbA1c: 7.2% · Fasting Sugar: 126</div>
+          <a href="#" class="open-btn">🔗 Open Report</a>
+        </div>
+        <div class="report-card">
+          <div class="type-icon">❤️</div>
+          <h4>ECG Report</h4>
+          <div class="member-chip">Papa</div>
+          <div class="meta">📅 10 February 2026 · City Heart Clinic</div>
+          <div class="meta">Normal sinus rhythm</div>
+          <a href="#" class="open-btn">🔗 Open Report</a>
+        </div>
+        <div class="report-card">
+          <div class="type-icon">🦋</div>
+          <h4>Thyroid Profile (TSH)</h4>
+          <div class="member-chip">Mummy</div>
+          <div class="meta">📅 15 January 2026 · Metropolis Lab</div>
+          <div class="meta">TSH: 3.2 mIU/L · T3, T4 Normal</div>
+          <a href="#" class="open-btn">🔗 Open Report</a>
+        </div>
+        <div class="report-card">
+          <div class="type-icon">🦴</div>
+          <h4>Bone Density (DEXA)</h4>
+          <div class="member-chip">Mummy</div>
+          <div class="meta">📅 20 December 2025 · SRL Diagnostics</div>
+          <div class="meta">T-score: -1.2 (Osteopenia)</div>
+          <a href="#" class="open-btn">🔗 Open Report</a>
+        </div>
+        <div class="report-card">
+          <div class="type-icon">🩺</div>
+          <h4>Complete Blood Count</h4>
+          <div class="member-chip">Deepak</div>
+          <div class="meta">📅 1 March 2026 · Dr. Lal PathLabs</div>
+          <div class="meta">All parameters normal</div>
+          <a href="#" class="open-btn">🔗 Open Report</a>
+        </div>
+        <div class="report-card">
+          <div class="type-icon">👶</div>
+          <h4>Paediatric Checkup</h4>
+          <div class="member-chip">Child</div>
+          <div class="meta">📅 14 February 2026 · Dr. Mehta Clinic</div>
+          <div class="meta">Weight: 18kg · Height: 112cm</div>
+          <a href="#" class="open-btn">🔗 Open Report</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD NEW -->
+  <div id="add" class="page">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title"><span class="icon">💊</span> Add New Medicine</div>
+      <div class="form-row">
+        <div class="form-group"><label>Family Member</label><select><option>Papa</option><option>Mummy</option><option>Deepak</option><option>Child</option></select></div>
+        <div class="form-group"><label>Medicine Name</label><input type="text" placeholder="e.g. Metformin 500mg" /></div>
+        <div class="form-group"><label>Tablets/Units Bought</label><input type="number" placeholder="e.g. 30" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Daily Dose</label><input type="text" placeholder="e.g. 2 per day" /></div>
+        <div class="form-group"><label>Purchase Date</label><input type="date" /></div>
+        <div class="form-group"><label>Prescribed By</label><input type="text" placeholder="e.g. Dr. Sharma" /></div>
+      </div>
+      <button class="btn btn-primary">+ Add Medicine</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🧪</span> Add Test Report (Google Drive Link)</div>
+      <div class="form-row">
+        <div class="form-group"><label>Family Member</label><select><option>Papa</option><option>Mummy</option><option>Deepak</option><option>Child</option></select></div>
+        <div class="form-group"><label>Test Name</label><input type="text" placeholder="e.g. HbA1c Blood Test" /></div>
+        <div class="form-group"><label>Test Date</label><input type="date" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Lab / Hospital</label><input type="text" placeholder="e.g. Metropolis Lab" /></div>
+        <div class="form-group"><label>Key Finding (optional)</label><input type="text" placeholder="e.g. HbA1c: 7.2%" /></div>
+        <div class="form-group"><label>Google Drive Link</label><input type="url" placeholder="https://drive.google.com/..." /></div>
+      </div>
+      <button class="btn btn-secondary">+ Add Report</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
