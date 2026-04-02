@@ -1,649 +1,1097 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Family Health Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet"/>
-<style>
-:root {
-  --bg:#0d1117; --surface:#161b22; --surface2:#21262d; --border:#30363d;
-  --accent:#58a6ff; --accent2:#3fb950; --warn:#d29922; --danger:#f85149;
-  --text:#e6edf3; --muted:#8b949e; --radius:12px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Family Health Hub Pro</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-/* ── LOGIN ── */
-#loginScreen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
-.login-box{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px 40px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.5);animation:loginDrop .5s cubic-bezier(.16,1,.3,1)}
-@keyframes loginDrop{from{opacity:0;transform:translateY(-30px) scale(.96)}to{opacity:1;transform:none}}
-.login-icon{font-size:3rem;margin-bottom:14px}
-.login-title{font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:5px}
-.login-title span{color:var(--accent);font-style:italic}
-.login-sub{font-size:.82rem;color:var(--muted);margin-bottom:28px}
-.l-field{margin-bottom:13px;text-align:left}
-.l-field label{display:block;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:5px}
-.l-field input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px 15px;font-family:'Sora',sans-serif;font-size:.93rem;color:var(--text);transition:border-color .2s;letter-spacing:.5px}
-.l-field input:focus{outline:none;border-color:var(--accent)}
-.l-field input.shake{animation:shake .4s ease}
-@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
-.remember{display:flex;align-items:center;gap:8px;font-size:.79rem;color:var(--muted);margin-bottom:18px;cursor:pointer;user-select:none;text-align:left}
-.remember input{accent-color:var(--accent);width:15px;height:15px}
-.login-btn{width:100%;padding:13px;background:var(--accent);color:#0d1117;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:.93rem;font-weight:700;cursor:pointer;transition:all .2s}
-.login-btn:hover{background:#79b8ff;transform:translateY(-1px)}
-.login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.login-err{margin-top:12px;font-size:.79rem;color:var(--danger);min-height:18px;font-weight:500}
-.setup-toggle{display:inline-block;margin-top:18px;font-size:.77rem;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.setup-toggle:hover{color:var(--accent)}
-#setupPanel{display:none;margin-top:20px;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px}
-#setupPanel.open{display:block}
-.s-field{margin-bottom:11px}
-.s-field label{display:block;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:4px}
-.s-field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-family:'Sora',sans-serif;font-size:.84rem;color:var(--text)}
-.s-field input:focus{outline:none;border-color:var(--accent)}
-.s-note{font-size:.71rem;color:var(--muted);margin-top:3px;line-height:1.5}
-.save-setup{width:100%;padding:10px;margin-top:6px;background:var(--surface);border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-family:'Sora',sans-serif;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .2s}
-.save-setup:hover{background:rgba(88,166,255,.1)}
-.login-hint{margin-top:18px;font-size:.72rem;color:var(--muted);line-height:1.7}
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' },
+                        accent: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5' },
+                        dark: { 800: '#0f172a', 900: '#020617', card: '#1e293b', border: '#334155' }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0,0,0,0.05)',
+                        'glow': '0 0 20px rgba(20, 184, 166, 0.4)',
+                        'glow-green': '0 0 20px rgba(16, 185, 129, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.3s ease;
+        }
+        .dark body { background-color: #020617; }
+        
+        .bg-mesh {
+            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,0.03) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,0.03) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,0.03) 0, transparent 50%);
+        }
+        .dark .bg-mesh {
+            background-image: radial-gradient(at 0% 0%, hsla(253,100%,50%,0.05) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,100%,50%,0.05) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,100%,50%,0.05) 0, transparent 50%);
+        }
+        
+        .page-view { display: none; animation: fadeIn 0.3s ease-in-out forwards; }
+        .page-view.active { display: block; }
+        @keyframes fadeIn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
 
-/* ── APP ── */
-#appShell{display:none}
-#appShell.on{display:block;animation:fadeIn .3s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+        .glass-card { background: #ffffff; border: 1px solid #f1f5f9; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03); border-radius: 1.5rem; transition: all 0.3s ease; }
+        .dark .glass-card { background: #1e293b; border: 1px solid #334155; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.2); }
 
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
-header h1{font-family:'Playfair Display',serif;font-size:1.3rem}
-header h1 span{color:var(--accent);font-style:italic}
-.hdr-r{display:flex;align-items:center;gap:10px}
-.sync{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:5px}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
-.dot.ok{background:var(--accent2)}.dot.err{background:var(--danger)}.dot.spin{background:var(--warn);animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.hbtn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:6px 11px;border-radius:7px;font-size:.74rem;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s}
-.hbtn:hover{border-color:var(--accent);color:var(--accent)}
-.hbtn.out{color:var(--danger)}.hbtn.out:hover{border-color:var(--danger);background:rgba(248,81,73,.08)}
+        .input-premium { background: #f8fafc; border: 2px solid transparent; transition: all 0.3s ease; color: #0f172a; }
+        .input-premium:focus { background: #ffffff; border-color: #14b8a6; box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1); outline: none; }
+        .dark .input-premium { background: #0f172a; color: #f8fafc; border-color: #334155; }
+        .dark .input-premium:focus { background: #020617; border-color: #14b8a6; box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.2); }
 
-nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 26px;overflow-x:auto}
-.tab{padding:12px 17px;cursor:pointer;font-size:.81rem;font-weight:500;white-space:nowrap;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.tab:hover:not(.active){color:var(--text)}
+        .avatar-grad-1 { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+        .avatar-grad-2 { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+        .avatar-grad-3 { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+        .avatar-grad-4 { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%); }
 
-main{max-width:1100px;margin:0 auto;padding:22px 18px}
-.page{display:none;animation:fadeIn .2s ease}.page.active{display:block}
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        @media (max-width: 768px) { ::-webkit-scrollbar { width: 0px; background: transparent; } }
 
-.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:11px;margin-bottom:18px}
-.st{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 17px;transition:border-color .2s}
-.st:hover{border-color:var(--accent)}
-.st .lb{font-size:.69rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
-.st .vl{font-family:'Playfair Display',serif;font-size:1.85rem;line-height:1}
-.st .sb{font-size:.71rem;color:var(--muted);margin-top:3px}
-.vl.d{color:var(--danger)}.vl.o{color:var(--accent2)}.vl.w{color:var(--warn)}.vl.i{color:var(--accent)}
+        .type-btn { transition: all 0.3s ease; }
+        .type-btn.active { color: #0f172a; font-weight: 800; transform: scale(1.02); }
+        .dark .type-btn.active { color: #f8fafc; }
+        .type-btn.inactive { color: #94a3b8; font-weight: 600; }
+        .dark .type-btn.inactive { color: #64748b; }
 
-.abar{background:#2d1a1a;border:1px solid var(--danger);border-radius:var(--radius);padding:11px 15px;margin-bottom:16px;font-size:.82rem;display:none}
-.abar.on{display:block}
-.abar .at{color:var(--danger);font-weight:600;margin-bottom:5px}
-.abar ul{padding-left:15px;color:#ccc;line-height:2}
+        .sidebar { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar.collapsed { width: 88px; }
+        .sidebar.collapsed .hide-on-collapse { opacity: 0; pointer-events: none; width: 0; overflow: hidden; white-space: nowrap; margin-left: 0 !important; display: none; }
+        .sidebar.collapsed .side-nav-btn { justify-content: center; padding-left: 0; padding-right: 0; }
+        
+        .scroll-snap-x { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+        .snap-center { scroll-snap-align: center; }
 
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:19px 21px;margin-bottom:16px}
-.ct{font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:15px;display:flex;align-items:center;justify-content:space-between}
+        .overlay-modal { opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .overlay-modal.active { opacity: 1; visibility: visible; }
 
-.tw{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.81rem}
-th{text-align:left;padding:9px 10px;background:var(--surface2);color:var(--muted);font-size:.69rem;text-transform:uppercase;letter-spacing:.8px;font-weight:600}
-th:first-child{border-radius:8px 0 0 8px}th:last-child{border-radius:0 8px 8px 0}
-td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
-tr:last-child td{border-bottom:none}tr:hover td{background:rgba(88,166,255,.03)}
-
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.69rem;font-weight:600}
-.badge.low{background:rgba(248,81,73,.15);color:var(--danger);border:1px solid rgba(248,81,73,.3)}
-.badge.ok{background:rgba(63,185,80,.1);color:var(--accent2);border:1px solid rgba(63,185,80,.3)}
-.badge.warn{background:rgba(210,153,34,.1);color:var(--warn);border:1px solid rgba(210,153,34,.3)}
-.chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.69rem;background:rgba(88,166,255,.1);color:var(--accent);border:1px solid rgba(88,166,255,.2)}
-
-.ab{padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:.72rem;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s;background:transparent}
-.ab.e{color:var(--accent);border-color:rgba(88,166,255,.3)}.ab.e:hover{background:rgba(88,166,255,.1)}
-.ab.d{color:var(--danger);border-color:rgba(248,81,73,.3)}.ab.d:hover{background:rgba(248,81,73,.1)}
-
-.ri-list{display:flex;flex-direction:column}
-.ri{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--border)}
-.ri:last-child{border-bottom:none}
-.rdb{min-width:56px;text-align:center;border-radius:9px;padding:7px 8px;background:var(--surface2);border:1px solid var(--border)}
-.rdy{font-family:'Playfair Display',serif;font-size:1.25rem;line-height:1}
-.rmn{font-size:.61rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
-.rinfo{flex:1}.rinfo h4{font-size:.87rem;font-weight:600;margin-bottom:2px}.rinfo p{font-size:.75rem;color:var(--muted)}
-.dp{font-family:'Playfair Display',serif;font-size:1.15rem;min-width:42px;text-align:right}
-
-.rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:11px}
-.rc{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:15px;display:flex;flex-direction:column;gap:5px;transition:border-color .2s}
-.rc:hover{border-color:var(--accent2)}
-.ric{font-size:1.45rem}.rc h4{font-size:.87rem;font-weight:600}
-.rm{font-size:.73rem;color:var(--muted)}.rf{font-size:.75rem;color:var(--text);background:var(--surface);padding:5px 8px;border-radius:6px}
-.ol{display:inline-flex;align-items:center;gap:4px;background:rgba(63,185,80,.1);color:var(--accent2);border:1px solid rgba(63,185,80,.3);padding:5px 10px;border-radius:7px;font-size:.75rem;font-weight:600;text-decoration:none;margin-top:3px;width:fit-content;transition:all .2s}
-.ol:hover{background:rgba(63,185,80,.2)}
-.ra{display:flex;gap:5px;margin-top:2px;align-items:center}
-
-.mtabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
-.mp{padding:6px 13px;border-radius:30px;cursor:pointer;font-size:.79rem;font-weight:500;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .2s}
-.mp.active{background:rgba(88,166,255,.1);border-color:var(--accent);color:var(--accent)}
-
-.fr{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px;margin-bottom:10px}
-.fg{display:flex;flex-direction:column;gap:4px}
-label{font-size:.71rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
-input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:'Sora',sans-serif;font-size:.86rem;color:var(--text);transition:border-color .2s}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
-select option{background:var(--surface2)}textarea{resize:vertical;min-height:52px}
-
-.fa{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
-.btn{padding:8px 17px;border-radius:8px;border:none;font-family:'Sora',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
-.bp{background:var(--accent);color:#0d1117}.bp:hover{background:#79b8ff}
-.bg{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.bg:hover{border-color:var(--muted)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-
-.mo{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
-.mo.open{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:510px;max-height:90vh;overflow-y:auto;animation:slideUp .25s ease}
-@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.mt{font-family:'Playfair Display',serif;font-size:1.08rem;margin-bottom:16px}
-.ma{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
-
-.toast{position:fixed;bottom:20px;right:20px;z-index:1000;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 15px;font-size:.81rem;display:flex;align-items:center;gap:6px;transform:translateY(70px);opacity:0;transition:all .3s;max-width:300px}
-.toast.show{transform:none;opacity:1}.toast.success{border-color:var(--accent2)}.toast.error{border-color:var(--danger)}
-
-.lr td{text-align:center;color:var(--muted);padding:26px}
-.sp{display:inline-block;width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.es{text-align:center;padding:34px;color:var(--muted);font-size:.85rem}
-.es .em{font-size:2rem;margin-bottom:7px}
-
-@media(max-width:600px){
-  header{padding:11px 13px}nav{padding:0 9px}main{padding:13px 10px}
-  .fr{grid-template-columns:1fr}.login-box{padding:34px 22px}
-}
-</style>
+        /* PERFECTED Print Styles */
+        @media print {
+            body, html { height: auto !important; overflow: visible !important; background: white !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
+            .bg-mesh, aside, header, .nav-btn, .fixed, .overlay-modal, .page-view, #mobileFabAdd, #desktopTopBar, .no-print { display: none !important; }
+            
+            #printContainer { display: block !important; position: relative !important; width: 100% !important; z-index: 9999; background: white; padding: 0 !important; margin: 0 !important; }
+            
+            .print-card { border: 1px solid #ccc !important; box-shadow: none !important; page-break-inside: avoid; break-inside: avoid; margin-bottom: 15px; padding: 15px; border-radius: 8px; width: 100%; display: block; }
+            .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+            h1, h2, h3, h4, h5, p, span, div { color: black !important; page-break-inside: avoid; }
+            .print-badge { border: 1px solid #000; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; display: inline-block; margin-right: 5px; }
+            .print-header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+        }
+        @media screen { #printContainer { display: none !important; } }
+    </style>
 </head>
-<body>
+<body class="antialiased h-screen overflow-hidden flex transition-colors duration-300 text-slate-800 dark:text-slate-200">
+    <div class="bg-mesh"></div>
 
-<!-- ══════════════ LOGIN SCREEN ══════════════ -->
-<div id="loginScreen">
-  <div class="login-box">
-    <div class="login-icon">🏥</div>
-    <div class="login-title">Family <span>Health</span></div>
-    <div class="login-sub">Enter your password to continue</div>
+    <!-- Hidden Container for Printing Doctor's Report -->
+    <div id="printContainer" class="hidden"></div>
 
-    <div class="l-field">
-      <label>Password</label>
-      <input type="password" id="pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
-    </div>
-    <label class="remember">
-      <input type="checkbox" id="rem" checked/> Remember me for 7 days
-    </label>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">Unlock →</button>
-    <div class="login-err" id="loginErr"></div>
-
-    <span class="setup-toggle" onclick="toggleSetup()">⚙ First time? Configure here</span>
-
-    <div id="setupPanel">
-      <div class="s-field">
-        <label>Apps Script URL *</label>
-        <input type="url" id="sUrl" placeholder="https://script.google.com/macros/s/.../exec"/>
-        <div class="s-note">Your Google Apps Script Web App deployment URL</div>
-      </div>
-      <div class="s-field">
-        <label>Secret Key *</label>
-        <input type="text" id="sSecret" placeholder="e.g. deepak-health-2026"/>
-        <div class="s-note">Must match SECRET_KEY in your Code.gs file</div>
-      </div>
-      <div class="s-field">
-        <label>Set App Password *</label>
-        <input type="text" id="sPw" placeholder="Choose a password you'll remember"/>
-        <div class="s-note">This is what you type every time you open the app</div>
-      </div>
-      <div class="s-field">
-        <label>Family Members (comma separated)</label>
-        <input type="text" id="sMembers" placeholder="Papa, Mummy, Deepak, Child"/>
-      </div>
-      <button class="save-setup" onclick="saveSetup()">💾 Save Configuration</button>
-    </div>
-
-    <div class="login-hint">
-      🔒 Your URL, key and password are stored <strong>only in this browser</strong>.<br/>
-      The GitHub file contains none of these — it is completely safe to make public.
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════ APP SHELL ══════════════ -->
-<div id="appShell">
-  <header>
-    <h1>Family <span>Health</span> Tracker</h1>
-    <div class="hdr-r">
-      <div class="sync"><div class="dot" id="dot"></div><span id="syncTxt">Connecting…</span></div>
-      <button class="hbtn out" onclick="logout()">🔒 Lock</button>
-    </div>
-  </header>
-
-  <nav>
-    <div class="tab active" onclick="showPage('dashboard',this)">🏠 Dashboard</div>
-    <div class="tab" onclick="showPage('medicines',this)">💊 Medicines</div>
-    <div class="tab" onclick="showPage('members',this)">👨‍👩‍👧 By Member</div>
-    <div class="tab" onclick="showPage('refills',this)">📅 Refills</div>
-    <div class="tab" onclick="showPage('reports',this)">🧪 Reports</div>
-    <div class="tab" onclick="showPage('addmed',this)">＋ Medicine</div>
-    <div class="tab" onclick="showPage('addrep',this)">＋ Report</div>
-  </nav>
-
-  <main>
-    <!-- DASHBOARD -->
-    <div id="dashboard" class="page active">
-      <div class="sg">
-        <div class="st"><div class="lb">Medicines Low</div><div class="vl d" id="sLow">—</div><div class="sb">Need refill</div></div>
-        <div class="st"><div class="lb">Total Medicines</div><div class="vl i" id="sTot">—</div><div class="sb">All members</div></div>
-        <div class="st"><div class="lb">Next Refill</div><div class="vl w" id="sNext">—</div><div class="sb" id="sNextS">—</div></div>
-        <div class="st"><div class="lb">Reports Saved</div><div class="vl o" id="sRep">—</div><div class="sb">Google Drive</div></div>
-      </div>
-      <div class="abar" id="abar"><div class="at">⚠️ Low Stock Alert</div><ul id="alist"></ul></div>
-      <div class="card">
-        <div class="ct">💊 Medicine Stock Overview</div>
-        <div class="tw"><table>
-          <thead><tr><th>Medicine</th><th>Member</th><th>Left</th><th>Dose/Day</th><th>Days Left</th><th>Status</th></tr></thead>
-          <tbody id="dtb"><tr class="lr"><td colspan="6"><span class="sp"></span>Loading…</td></tr></tbody>
-        </table></div>
-      </div>
-    </div>
-
-    <!-- MEDICINES -->
-    <div id="medicines" class="page">
-      <div class="card">
-        <div class="ct"><span>💊 All Medicines</span>
-          <button class="btn bp" style="font-size:.79rem;padding:5px 13px" onclick="showPage('addmed',null)">＋ Add</button>
+    <!-- Global Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-[100] hidden flex-col justify-center items-center transition-opacity">
+        <div class="relative w-20 h-20 mb-6">
+            <div class="absolute inset-0 border-4 border-brand-100 dark:border-brand-900 rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-brand-500 rounded-full border-t-transparent animate-spin"></div>
+            <i class="fa-solid fa-heart-pulse absolute inset-0 flex items-center justify-center text-brand-500 text-xl animate-pulse"></i>
         </div>
-        <div class="tw"><table>
-          <thead><tr><th>Medicine</th><th>Member</th><th>Qty Left</th><th>Dose/Day</th><th>Days Left</th><th>Refill By</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="mtb"><tr class="lr"><td colspan="8"><span class="sp"></span>Loading…</td></tr></tbody>
-        </table></div>
-      </div>
+        <h2 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Syncing Data</h2>
+        <p class="text-slate-500 dark:text-slate-400 font-medium mt-2">Connecting to Google Drive...</p>
     </div>
 
-    <!-- BY MEMBER -->
-    <div id="members" class="page">
-      <div class="mtabs" id="mtabs"></div>
-      <div class="card">
-        <div class="ct" id="mct">Medicines</div>
-        <div class="tw"><table>
-          <thead><tr><th>Medicine</th><th>Qty Left</th><th>Dose/Day</th><th>Days Left</th><th>Refill By</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="mmtb"><tr class="lr"><td colspan="7"><span class="sp"></span>Loading…</td></tr></tbody>
-        </table></div>
-      </div>
-    </div>
+    <!-- ========================================== -->
+    <!-- DESKTOP SIDEBAR NAVIGATION                 -->
+    <!-- ========================================== -->
+    <aside id="desktopSidebar" class="sidebar hidden md:flex flex-col w-72 bg-slate-900 dark:bg-black text-white h-full relative z-40 shadow-2xl shrink-0 border-r border-slate-800">
+        <button onclick="toggleSidebar()" class="absolute -right-4 top-10 bg-slate-800 hover:bg-brand-500 text-white rounded-full h-8 w-8 flex items-center justify-center shadow-lg border border-slate-700 transition-colors z-50">
+            <i id="collapseIcon" class="fa-solid fa-chevron-left text-xs"></i>
+        </button>
 
-    <!-- REFILLS -->
-    <div id="refills" class="page">
-      <div class="card">
-        <div class="ct">📅 Upcoming Refill Schedule</div>
-        <div class="ri-list" id="rilist"><div class="es"><span class="sp"></span> Loading…</div></div>
-      </div>
-    </div>
+        <div class="p-6 pt-8">
+            <div class="flex items-center space-x-3 mb-10 overflow-hidden">
+                <div class="h-10 w-10 min-w-[40px] bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-glow shrink-0">
+                    <i class="fa-solid fa-heart-pulse text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-black tracking-tight text-white hide-on-collapse">Health<span class="text-brand-400">Hub</span></h1>
+            </div>
 
-    <!-- REPORTS -->
-    <div id="reports" class="page">
-      <div class="card">
-        <div class="ct"><span>🧪 Reports & Documents</span>
-          <button class="btn bp" style="font-size:.79rem;padding:5px 13px" onclick="showPage('addrep',null)">＋ Add</button>
+            <nav class="space-y-3">
+                <button onclick="navigate('dashboard')" id="side-nav-dashboard" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold transition-all" title="Dashboard">
+                    <i class="fa-solid fa-layer-group w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Dashboard</span>
+                </button>
+                <button onclick="navigate('family')" id="side-nav-family" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all" title="Family Profiles">
+                    <i class="fa-solid fa-users w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Family Profiles</span>
+                </button>
+                <button onclick="navigate('medicines')" id="side-nav-medicines" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all" title="Medicines Cabinet">
+                    <i class="fa-solid fa-box-archive w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Medicines Cabinet</span>
+                </button>
+                <button onclick="navigate('reports')" id="side-nav-reports" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all" title="Reports & Vitals">
+                    <i class="fa-solid fa-file-medical w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Reports & Vitals</span>
+                </button>
+            </nav>
         </div>
-        <div class="rg" id="rg"><div class="es"><span class="sp"></span> Loading…</div></div>
-      </div>
-    </div>
 
-    <!-- ADD MEDICINE -->
-    <div id="addmed" class="page">
-      <div class="card">
-        <div class="ct">💊 Add New Medicine</div>
-        <div class="fr">
-          <div class="fg"><label>Member *</label><select id="mm"></select></div>
-          <div class="fg"><label>Medicine Name *</label><input type="text" id="mn" placeholder="e.g. Metformin 500mg"/></div>
-          <div class="fg"><label>Qty Bought *</label><input type="number" id="mq" placeholder="30" min="1"/></div>
+        <div class="mt-auto p-6 pb-8 space-y-3">
+            <button onclick="downloadBackup()" class="w-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center space-x-2 side-nav-btn" title="Backup to CSV">
+                <i class="fa-solid fa-cloud-arrow-down shrink-0"></i><span class="hide-on-collapse">Backup CSV</span>
+            </button>
+            <button onclick="navigate('add')" class="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-black py-3.5 rounded-xl shadow-glow-green hover:scale-[1.02] transition-all flex items-center justify-center space-x-2 side-nav-btn" title="Add Record">
+                <i class="fa-solid fa-plus shrink-0 text-xl"></i><span class="hide-on-collapse">Add Record</span>
+            </button>
         </div>
-        <div class="fr">
-          <div class="fg"><label>Daily Dose * (number)</label><input type="text" id="md" placeholder="2  or  0.14 for once/week"/></div>
-          <div class="fg"><label>Purchase Date *</label><input type="date" id="mdt"/></div>
-          <div class="fg"><label>Prescribed By</label><input type="text" id="mdr" placeholder="Dr. Sharma"/></div>
+    </aside>
+
+    <!-- ========================================== -->
+    <!-- MAIN CONTENT AREA                          -->
+    <!-- ========================================== -->
+    <div class="flex-1 flex flex-col h-full relative overflow-hidden bg-transparent">
+        
+        <!-- Mobile Top Header -->
+        <header class="md:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-6 py-4 flex justify-between items-center shadow-sm z-30 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center space-x-2">
+                <div class="h-8 w-8 bg-gradient-to-br from-brand-400 to-brand-600 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-heart-pulse text-white text-sm"></i>
+                </div>
+                <h1 class="text-xl font-black tracking-tight text-slate-900 dark:text-white">Health<span class="text-brand-500">Hub</span></h1>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="downloadBackup()" class="h-10 w-10 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-cloud-arrow-down"></i></button>
+                <button onclick="toggleSearch()" class="h-10 w-10 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-magnifying-glass"></i></button>
+                <button onclick="toggleDarkMode()" class="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-moon dark:hidden"></i><i class="fa-solid fa-sun hidden dark:block text-amber-400"></i></button>
+            </div>
+        </header>
+
+        <!-- Desktop Top Bar -->
+        <div id="desktopTopBar" class="hidden md:flex absolute top-6 right-10 space-x-4 z-50">
+            <button onclick="toggleSearch()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <button onclick="fetchData()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
+            <button onclick="toggleDarkMode()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-amber-500 transition-colors"><i class="fa-solid fa-moon dark:hidden"></i><i class="fa-solid fa-sun hidden dark:block text-amber-400"></i></button>
         </div>
-        <div class="fr"><div class="fg"><label>Notes</label><textarea id="mnt" placeholder="e.g. Take after meals…"></textarea></div></div>
-        <div class="fa">
-          <button class="btn bp" id="smb" onclick="saveMed()">💾 Save Medicine</button>
-          <button class="btn bg" onclick="clearMed()">✕ Clear</button>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-10 pb-32 md:pb-10 relative" id="mainScrollArea">
+
+            <!-- Desktop Sync Button -->
+            <button onclick="fetchData()" class="hidden md:flex absolute top-10 right-24 h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors z-50 mr-4">
+                <i class="fa-solid fa-rotate-right text-lg"></i>
+            </button>
+
+            <!-- 1. DASHBOARD PAGE -->
+            <div id="page-dashboard" class="page-view active max-w-6xl mx-auto">
+                <div class="mb-10 pt-4 md:pt-0">
+                    <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Overview</p>
+                    <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white" id="greetingText">Good Morning!</h2>
+                    <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg" id="statusSubtitle">Loading your family's health overview...</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div class="glass-card p-6 flex items-center cursor-pointer hover:scale-[1.02]" onclick="navigate('family')">
+                        <div class="h-14 w-14 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center text-2xl mr-4"><i class="fa-solid fa-users"></i></div>
+                        <div><p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Family Members</p><p class="text-2xl font-extrabold text-slate-800 dark:text-white" id="statFamily">0</p></div>
+                    </div>
+                    <div class="glass-card p-6 flex items-center cursor-pointer hover:scale-[1.02]" onclick="navigate('medicines')">
+                        <div class="h-14 w-14 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mr-4"><i class="fa-solid fa-pills"></i></div>
+                        <div><p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Active Medicines</p><p class="text-2xl font-extrabold text-slate-800 dark:text-white" id="statMeds">0</p></div>
+                    </div>
+                    <div class="glass-card p-6 flex items-center cursor-pointer hover:scale-[1.02]" onclick="navigate('reports')">
+                        <div class="h-14 w-14 rounded-full bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 flex items-center justify-center text-2xl mr-4"><i class="fa-solid fa-file-medical"></i></div>
+                        <div><p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Records</p><p class="text-2xl font-extrabold text-slate-800 dark:text-white" id="statRecords">0</p></div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Appointments Section -->
+                <section class="mb-10" id="upcomingSection" style="display: none;">
+                    <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-4 flex items-center">
+                        <i class="fa-regular fa-calendar-check text-brand-500 mr-2"></i> Upcoming Appointments
+                    </h3>
+                    <div id="dashboardUpcoming" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </section>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <section>
+                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5 flex items-center">
+                            Attention Needed
+                            <span id="alertBadge" class="ml-3 bg-rose-500 text-white text-xs px-2.5 py-0.5 rounded-full hidden">0</span>
+                        </h3>
+                        <div id="dashboardAlerts" class="space-y-4"></div>
+                    </section>
+                    <section>
+                        <div class="flex justify-between items-end mb-5">
+                            <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Recent Logs</h3>
+                            <button onclick="navigate('reports')" class="text-brand-500 text-sm font-bold hover:underline">View All</button>
+                        </div>
+                        <div id="dashboardActivity" class="space-y-4"></div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- 2. FAMILY MEMBERS PAGE -->
+            <div id="page-family" class="page-view max-w-6xl mx-auto">
+                <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pt-4 md:pt-0">
+                    <div>
+                        <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Profiles</p>
+                        <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Family Members</h2>
+                        <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">Manage your family profiles & medical info.</p>
+                    </div>
+                    <button onclick="openAddMemberModal()" class="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-5 py-2.5 rounded-xl font-bold hover:scale-105 transition-all shadow-glow-green flex items-center shrink-0">
+                        <i class="fa-solid fa-user-plus mr-2"></i>Add Member
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" id="familyGridContainer"></div>
+            </div>
+
+            <!-- 3. INDIVIDUAL MEMBER PROFILE PAGE -->
+            <div id="page-member-detail" class="page-view max-w-5xl mx-auto">
+                <button onclick="navigate('family')" class="mb-6 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold transition-colors pt-4 md:pt-0">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Back to Profiles
+                </button>
+                
+                <div class="glass-card p-8 mb-8 flex flex-col md:flex-row items-center md:justify-between text-center md:text-left gap-6 relative overflow-hidden">
+                    <button onclick="printDoctorReport()" class="absolute top-4 right-4 md:top-6 md:right-6 bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-400 px-4 py-2 rounded-lg font-bold text-sm hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors flex items-center border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <i class="fa-solid fa-print mr-2"></i> Print for Doctor
+                    </button>
+
+                    <div class="flex flex-col md:flex-row items-center gap-6 pt-8 md:pt-0">
+                        <div id="profileAvatar" class="h-24 w-24 rounded-full text-white flex items-center justify-center text-4xl font-black shadow-inner border-4 border-white dark:border-slate-800 shadow-soft shrink-0"></div>
+                        <div>
+                            <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white" id="profileName">Name</h2>
+                            <p class="text-brand-500 font-bold mt-1 tracking-widest uppercase text-sm" id="profileStats">0 Meds • 0 Records</p>
+                            <div class="flex flex-wrap justify-center md:justify-start gap-2 mt-3" id="profileEmergencyInfo"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-10" id="profileVitalsSection">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3">
+                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line mr-2 text-rose-400"></i>Vitals Progress</h3>
+                        <select id="chartTestSelector" onchange="updateChart()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:border-brand-500 shadow-sm hidden"></select>
+                    </div>
+                    <div id="chartContainerWrapper" class="glass-card p-6 hidden">
+                        <div class="relative h-64 w-full"><canvas id="vitalsChart"></canvas></div>
+                    </div>
+                    <div id="noVitalsMsg" class="glass-card p-8 text-center text-slate-400 dark:text-slate-500 font-medium hidden">No test or vital records logged for this member.</div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div>
+                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5"><i class="fa-solid fa-pills mr-2 text-brand-500"></i>Active Medicines</h3>
+                        <div id="profileMedsContainer" class="space-y-4"></div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5"><i class="fa-solid fa-timeline mr-2 text-accent-500"></i>Medical History</h3>
+                        <div id="profileHistoryContainer" class="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. MEDICINES PAGE -->
+            <div id="page-medicines" class="page-view max-w-6xl mx-auto">
+                <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pt-4 md:pt-0">
+                    <div>
+                        <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Inventory</p>
+                        <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Medicines Cabinet</h2>
+                        <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">All active prescriptions across the family.</p>
+                    </div>
+                    <button onclick="navigate('add', 'Medicine')" class="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-5 py-2.5 rounded-xl font-bold hover:scale-105 transition-all shadow-glow-green flex items-center shrink-0">
+                        <i class="fa-solid fa-plus mr-2"></i>Add Medicine
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="allMedicinesContainer"></div>
+            </div>
+
+            <!-- 5. REPORTS & VITALS PAGE -->
+            <div id="page-reports" class="page-view max-w-6xl mx-auto">
+                <div class="mb-8 pt-4 md:pt-0">
+                    <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Logs</p>
+                    <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Reports & Vitals</h2>
+                    <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg mb-6">Complete chronological history of all visits, tests, and documents.</p>
+                    <div class="flex items-center space-x-3 overflow-x-auto pb-2 scroll-snap-x" id="reportFilterContainer"></div>
+                </div>
+                
+                <div class="max-w-3xl glass-card p-6 md:p-8 mx-auto md:mx-0">
+                    <div id="allReportsContainer" class="space-y-6 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-brand-200 before:via-slate-200 dark:before:via-slate-700 before:to-transparent"></div>
+                </div>
+            </div>
+
+            <!-- 6. ADD RECORD PAGE -->
+            <div id="page-add" class="page-view max-w-2xl mx-auto">
+                <div class="mb-10 pt-4 md:pt-0">
+                    <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Add New Record</h2>
+                    <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">Log a visit, update a prescription, or track a vital sign.</p>
+                </div>
+                
+                <div class="glass-card p-6 md:p-10">
+                    <div class="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl flex mb-10 relative shadow-inner">
+                        <div id="toggleBg" class="absolute top-1.5 bottom-1.5 left-1.5 w-[calc(33.33%-4px)] bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 transition-all duration-300 ease-out"></div>
+                        
+                        <button onclick="selectRecordType('Checkup')" id="btn-type-Checkup" class="type-btn active relative w-1/3 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
+                            <i class="fa-solid fa-stethoscope mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Visit</span>
+                        </button>
+                        <button onclick="selectRecordType('Medicine')" id="btn-type-Medicine" class="type-btn inactive relative w-1/3 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
+                            <i class="fa-solid fa-pills mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Medicine</span>
+                        </button>
+                        <button onclick="selectRecordType('Vital')" id="btn-type-Vital" class="type-btn inactive relative w-1/3 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
+                            <i class="fa-solid fa-heart-pulse mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Vitals</span>
+                        </button>
+                    </div>
+
+                    <form id="addRecordForm" onsubmit="submitRecord(event)">
+                        <input type="hidden" id="recordType" value="Checkup">
+                        
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Family Member <span class="text-rose-500">*</span></label>
+                                    <select id="memberName" required class="input-premium w-full p-4 rounded-2xl font-semibold appearance-none cursor-pointer">
+                                        <option value="" disabled selected>Select member...</option>
+                                    </select>
+                                    <p class="text-[10px] text-slate-400 mt-1 ml-1">Don't see them? <a href="#" onclick="openAddMemberModal(); return false;" class="text-brand-500 hover:underline">Add Member</a></p>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Date <span class="text-rose-500">*</span></label>
+                                    <input type="date" id="recordDate" required class="input-premium w-full p-4 rounded-2xl font-semibold">
+                                    <p class="text-[10px] text-brand-500 mt-1 ml-1 hidden" id="futureDateHint">Future date selected. This will be marked as an upcoming appointment!</p>
+                                </div>
+                            </div>
+
+                            <div id="dynamicFields" class="space-y-6 bg-brand-50/50 dark:bg-brand-900/10 p-6 rounded-[1.5rem] border border-brand-100/50 dark:border-brand-900/30 transition-colors duration-300"></div>
+
+                            <div>
+                                <label class="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Notes</label>
+                                <textarea id="notes" rows="3" class="input-premium w-full p-4 rounded-2xl font-medium resize-none leading-relaxed" placeholder="Add instructions, side effects, or diagnosis..."></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="mt-10 w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-extrabold text-lg py-4 rounded-2xl shadow-glow-green hover:scale-[1.02] transition-all flex items-center justify-center">
+                            <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Save to Google Drive
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
         </div>
-      </div>
     </div>
 
-    <!-- ADD REPORT -->
-    <div id="addrep" class="page">
-      <div class="card">
-        <div class="ct">🧪 Add Test Report</div>
-        <div class="fr">
-          <div class="fg"><label>Member *</label><select id="rm"></select></div>
-          <div class="fg"><label>Test Name *</label><input type="text" id="rn" placeholder="e.g. HbA1c Blood Test"/></div>
-          <div class="fg"><label>Test Date *</label><input type="date" id="rdt"/></div>
+    <!-- ========================================== -->
+    <!-- MOBILE QUICK ADD FAB                       -->
+    <!-- ========================================== -->
+    <button onclick="navigate('add')" id="mobileFabAdd" class="md:hidden fixed bottom-24 right-6 h-14 w-14 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center text-white text-2xl z-40 transition-transform active:scale-90">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <!-- ========================================== -->
+    <!-- MOBILE FLOATING NAVIGATION (HIDDEN ON MD)  -->
+    <!-- ========================================== -->
+    <div class="md:hidden fixed bottom-6 left-0 right-0 px-4 z-50 pointer-events-none">
+        <nav class="bg-slate-900 dark:bg-black shadow-2xl rounded-full flex justify-between p-2 pointer-events-auto border border-slate-800 backdrop-blur-xl">
+            <button onclick="navigate('dashboard')" id="mob-nav-dashboard" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-brand-400 transition-all">
+                <i class="fa-solid fa-layer-group text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Home</span>
+            </button>
+            <button onclick="navigate('family')" id="mob-nav-family" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-slate-500 hover:text-white transition-all">
+                <i class="fa-solid fa-users text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Family</span>
+            </button>
+            <button onclick="navigate('medicines')" id="mob-nav-medicines" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-slate-500 hover:text-white transition-all">
+                <i class="fa-solid fa-pills text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Meds</span>
+            </button>
+            <button onclick="navigate('reports')" id="mob-nav-reports" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-slate-500 hover:text-white transition-all">
+                <i class="fa-solid fa-file-medical text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Logs</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- OVERLAYS & MODALS                          -->
+    <!-- ========================================== -->
+    <div id="addMemberModal" class="overlay-modal fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] shadow-2xl p-6 md:p-8 transform scale-95 transition-transform border border-slate-200 dark:border-slate-700" id="addMemberModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-black text-slate-900 dark:text-white">Add Member</h3>
+                <button onclick="closeAddMemberModal()" class="text-slate-400 hover:text-rose-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="submitNewMember(event)">
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Full Name <span class="text-rose-500">*</span></label>
+                    <input type="text" id="newMemberName" required class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. Grandma">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Blood Type (Optional)</label>
+                    <select id="newMemberBloodType" class="input-premium w-full p-3.5 rounded-2xl font-semibold appearance-none">
+                        <option value="">Unknown</option>
+                        <option value="A+">A+</option><option value="A-">A-</option>
+                        <option value="B+">B+</option><option value="B-">B-</option>
+                        <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                        <option value="O+">O+</option><option value="O-">O-</option>
+                    </select>
+                </div>
+                <div class="mb-8">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Allergies (Optional)</label>
+                    <input type="text" id="newMemberAllergies" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. Penicillin, Peanuts">
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-4 rounded-2xl hover:scale-[1.02] shadow-glow-green transition-all flex justify-center items-center"><i class="fa-solid fa-user-plus mr-2"></i> Save Profile</button>
+            </form>
         </div>
-        <div class="fr">
-          <div class="fg"><label>Lab / Hospital</label><input type="text" id="rl" placeholder="Metropolis Lab"/></div>
-          <div class="fg"><label>Key Finding</label><input type="text" id="rf" placeholder="HbA1c: 7.2%"/></div>
-          <div class="fg"><label>Google Drive Link *</label><input type="url" id="rk" placeholder="https://drive.google.com/…"/></div>
+    </div>
+
+    <div id="searchOverlay" class="overlay-modal fixed inset-0 z-[110] bg-white dark:bg-slate-900 flex flex-col">
+        <div class="p-4 md:p-8 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4 bg-white dark:bg-slate-900 z-10">
+            <button onclick="toggleSearch()" class="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white"><i class="fa-solid fa-arrow-left text-xl"></i></button>
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="globalSearchInput" onkeyup="executeSearch()" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-2 focus:ring-brand-500 font-semibold" placeholder="Search medicines, notes, doctors..." autofocus>
+            </div>
         </div>
-        <div class="fa">
-          <button class="btn bp" id="srb" onclick="saveRep()">💾 Save Report</button>
-          <button class="btn bg" onclick="clearRep()">✕ Clear</button>
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50 dark:bg-slate-900/50">
+            <div class="max-w-3xl mx-auto" id="searchResultsContainer">
+                <div class="text-center py-20 text-slate-400"><i class="fa-solid fa-keyboard text-4xl mb-4 opacity-50"></i><p class="font-medium">Start typing to search your secure vault.</p></div>
+            </div>
         </div>
-        <p style="font-size:.74rem;color:var(--muted);margin-top:11px">💡 Drive link: Upload PDF → Right-click → Get Link → "Anyone with link" → Copy</p>
-      </div>
     </div>
-  </main>
-</div>
 
-<!-- EDIT MED MODAL -->
-<div class="mo" id="emm">
-  <div class="modal">
-    <div class="mt">✏️ Edit Medicine</div>
-    <input type="hidden" id="emr"/>
-    <div class="fr">
-      <div class="fg"><label>Member</label><select id="emem"></select></div>
-      <div class="fg"><label>Medicine Name</label><input type="text" id="emn"/></div>
-      <div class="fg"><label>Qty Left</label><input type="number" id="emq" min="0"/></div>
-    </div>
-    <div class="fr">
-      <div class="fg"><label>Daily Dose</label><input type="text" id="emd"/></div>
-      <div class="fg"><label>Purchase Date</label><input type="date" id="emdt"/></div>
-      <div class="fg"><label>Prescribed By</label><input type="text" id="emdr"/></div>
-    </div>
-    <div class="fg" style="margin-bottom:9px"><label>Notes</label><textarea id="emnt"></textarea></div>
-    <div class="ma">
-      <button class="btn bg" onclick="cm('emm')">Cancel</button>
-      <button class="btn bp" onclick="updMed()">💾 Save</button>
-    </div>
-  </div>
-</div>
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT LOGIC                           -->
+    <!-- ========================================== -->
+    <script>
+        const APPS_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
-<!-- EDIT REP MODAL -->
-<div class="mo" id="erm">
-  <div class="modal">
-    <div class="mt">✏️ Edit Report</div>
-    <input type="hidden" id="err"/>
-    <div class="fr">
-      <div class="fg"><label>Member</label><select id="erem"></select></div>
-      <div class="fg"><label>Test Name</label><input type="text" id="ern"/></div>
-      <div class="fg"><label>Test Date</label><input type="date" id="erdt"/></div>
-    </div>
-    <div class="fr">
-      <div class="fg"><label>Lab</label><input type="text" id="erl"/></div>
-      <div class="fg"><label>Key Finding</label><input type="text" id="erf"/></div>
-    </div>
-    <div class="fg" style="margin-bottom:9px"><label>Google Drive Link</label><input type="url" id="erk"/></div>
-    <div class="ma">
-      <button class="btn bg" onclick="cm('erm')">Cancel</button>
-      <button class="btn bp" onclick="updRep()">💾 Save</button>
-    </div>
-  </div>
-</div>
+        let healthData = [];
+        let activeChart = null; 
+        let currentProfileData = []; 
+        let familyMembersList = [];
+        let currentReportFilter = 'All';
+        let currentActiveMemberName = '';
+        
+        function getAvatarClass(name) { return ['avatar-grad-1', 'avatar-grad-2', 'avatar-grad-3', 'avatar-grad-4'][(name.charCodeAt(0) || 0) % 4]; }
+        function getInitials(name) { return name ? name.substring(0, 2).toUpperCase() : '??'; }
 
-<div class="toast" id="toast"></div>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dInput = document.getElementById('recordDate');
+            dInput.valueAsDate = new Date();
+            dInput.addEventListener('change', () => {
+                const selected = new Date(dInput.value); const today = new Date(); today.setHours(0,0,0,0);
+                const hint = document.getElementById('futureDateHint');
+                if(selected > today) hint.classList.remove('hidden'); else hint.classList.add('hidden');
+            });
 
-<script>
-// ── Simple SHA-256 hash (password never stored plain) ──
-async function h(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+            const hour = new Date().getHours();
+            let greeting = "Good Evening!";
+            if (hour < 12) greeting = "Good Morning!"; else if (hour < 18) greeting = "Good Afternoon!";
+            document.getElementById('greetingText').innerText = greeting;
 
-let URL_='',KEY_='',MBR=[];
-let meds=[],reps=[],curMbr='All',curPg='dashboard';
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
 
-// ════════════════ BOOT ════════════════
-window.addEventListener('DOMContentLoaded',async()=>{
-  const sess=localStorage.getItem('ht_s'),exp=+(localStorage.getItem('ht_e')||0);
-  if(!localStorage.getItem('ht_url')) document.getElementById('setupPanel').classList.add('open');
-  if(sess&&exp>Date.now()) boot();
-});
+            selectRecordType('Checkup');
 
-async function doLogin(){
-  const p=document.getElementById('pw').value,e=document.getElementById('loginErr'),stored=localStorage.getItem('ht_p');
-  if(!p){e.textContent='Enter your password.';return}
-  if(!stored){e.textContent='No password set. Use setup below.';return}
-  if(!localStorage.getItem('ht_url')){e.textContent='Not configured. Use setup below.';return}
-  document.getElementById('loginBtn').disabled=true;document.getElementById('loginBtn').textContent='Checking…';
-  const entered=await h(p);
-  if(entered!==stored){
-    document.getElementById('pw').classList.add('shake');
-    setTimeout(()=>document.getElementById('pw').classList.remove('shake'),450);
-    e.textContent='❌ Wrong password.';
-    document.getElementById('loginBtn').disabled=false;document.getElementById('loginBtn').textContent='Unlock →';return;
-  }
-  const rem=document.getElementById('rem').checked;
-  localStorage.setItem('ht_s','ok');
-  localStorage.setItem('ht_e',(Date.now()+(rem?7*86400000:3600000)).toString());
-  document.getElementById('loginBtn').disabled=false;document.getElementById('loginBtn').textContent='Unlock →';
-  boot();
-}
+            if (APPS_SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") loadDemoData();
+            else fetchData();
+        });
 
-function boot(){
-  URL_=localStorage.getItem('ht_url')||'';
-  KEY_=localStorage.getItem('ht_k')||'';
-  MBR=(localStorage.getItem('ht_m')||'Papa,Mummy,Me,Child').split(',').map(s=>s.trim()).filter(Boolean);
-  document.getElementById('loginScreen').style.display='none';
-  document.getElementById('appShell').classList.add('on');
-  popDrops();setDates();loadAll();
-}
+        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); if(activeChart) updateChart(); }
 
-function logout(){
-  localStorage.removeItem('ht_s');localStorage.removeItem('ht_e');
-  document.getElementById('loginScreen').style.display='flex';
-  document.getElementById('appShell').classList.remove('on');
-  document.getElementById('pw').value='';document.getElementById('loginErr').textContent='';
-}
+        function toggleSidebar() {
+            const sb = document.getElementById('desktopSidebar'); const icon = document.getElementById('collapseIcon');
+            sb.classList.toggle('collapsed');
+            icon.classList.replace(sb.classList.contains('collapsed') ? 'fa-chevron-left' : 'fa-chevron-right', sb.classList.contains('collapsed') ? 'fa-chevron-right' : 'fa-chevron-left');
+        }
 
-// ── Setup ──
-function toggleSetup(){document.getElementById('setupPanel').classList.toggle('open')}
-async function saveSetup(){
-  const u=v('sUrl').trim(),k=v('sSecret').trim(),p=v('sPw').trim(),m=v('sMembers').trim();
-  if(!u||!k||!p){alert('Fill URL, Secret Key and Password.');return}
-  const ph=await h(p);
-  localStorage.setItem('ht_url',u);localStorage.setItem('ht_k',k);
-  localStorage.setItem('ht_p',ph);localStorage.setItem('ht_m',m||'Papa,Mummy,Me,Child');
-  document.getElementById('setupPanel').classList.remove('open');
-  showToast('✅ Setup saved! Now enter your password.','success');
-}
+        function navigate(pageId, optionalContext = null) {
+            document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+            if (pageId === 'add' && optionalContext) selectRecordType(optionalContext);
+            document.getElementById('page-' + pageId).classList.add('active');
+            document.getElementById('mainScrollArea').scrollTo({ top: 0, behavior: 'smooth' });
 
-// ════════════════ NAV ════════════════
-function showPage(id,el){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  if(el)el.classList.add('active');
-  else document.querySelectorAll('.tab').forEach(t=>{if((t.getAttribute('onclick')||'').includes("'"+id+"'"))t.classList.add('active')});
-  curPg=id;
-  if(id==='members')renderMbr();
-  if(id==='refills')renderRefills();
-  if(id==='reports')renderReps();
-}
+            document.querySelectorAll('.side-nav-btn').forEach(el => el.className = "side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all");
+            const activeSide = document.getElementById('side-nav-' + pageId);
+            if (activeSide) activeSide.className = "side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold transition-all";
 
-function popDrops(){
-  ['mm','rm','emem','erem'].forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    el.innerHTML='<option value="">Select…</option>'+MBR.map(m=>`<option value="${m}">${m}</option>`).join('');
-  });
-  const t=document.getElementById('mtabs');
-  if(t)t.innerHTML=['All',...MBR].map((m,i)=>`<div class="mp ${i===0?'active':''}" onclick="filMbr('${m}',this)">${m==='All'?'👥 All':m}</div>`).join('');
-  curMbr='All';
-}
+            if (['dashboard', 'family', 'add', 'medicines', 'reports'].includes(pageId)) {
+                document.querySelectorAll('.mob-nav-btn').forEach(el => { el.classList.remove('text-brand-400'); el.classList.add('text-slate-500'); });
+                const activeMob = document.getElementById('mob-nav-' + pageId);
+                if(activeMob) { activeMob.classList.remove('text-slate-500'); activeMob.classList.add('text-brand-400'); }
+            }
 
-function setDates(){const d=new Date().toISOString().split('T')[0];['mdt','rdt'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=d})}
+            // Handle Mobile FAB visibility
+            const fab = document.getElementById('mobileFabAdd');
+            if(pageId === 'add') fab.classList.add('hidden'); else fab.classList.remove('hidden');
+        }
 
-// ════════════════ API ════════════════
-function sync(s,t){document.getElementById('dot').className='dot '+s;document.getElementById('syncTxt').textContent=t}
+        function selectRecordType(type) {
+            document.getElementById('recordType').value = type;
+            const bg = document.getElementById('toggleBg');
+            const btns = { 'Checkup': document.getElementById('btn-type-Checkup'), 'Medicine': document.getElementById('btn-type-Medicine'), 'Vital': document.getElementById('btn-type-Vital') };
 
-async function api(p){
-  p.key=KEY_;const r=await fetch(URL_+'?'+new URLSearchParams(p));
-  const j=await r.json();if(j.error)throw new Error(j.error);return j;
-}
-async function post(b){
-  b.key=KEY_;const r=await fetch(URL_,{method:'POST',body:JSON.stringify(b)});
-  const j=await r.json();if(j.error)throw new Error(j.error);return j;
-}
+            Object.values(btns).forEach(btn => { btn.classList.remove('active'); btn.classList.add('inactive'); });
+            btns[type].classList.remove('inactive'); btns[type].classList.add('active');
 
-async function loadAll(){
-  sync('spin','Syncing…');
-  try{
-    const[a,b]=await Promise.all([api({action:'getMedicines'}),api({action:'getReports'})]);
-    meds=a.data||[];reps=b.data||[];
-    sync('ok','Live · '+new Date().toLocaleTimeString());
-    renderDash();renderMeds();
-    if(curPg==='members')renderMbr();
-    if(curPg==='refills')renderRefills();
-    if(curPg==='reports')renderReps();
-  }catch(e){sync('err','Failed');showToast('Error: '+e.message,'error')}
-}
+            const df = document.getElementById('dynamicFields');
 
-// ════════════════ RENDER ════════════════
-function renderDash(){
-  const low=meds.filter(m=>dl(m)!==null&&dl(m)<=7);
-  document.getElementById('sLow').textContent=low.length;
-  document.getElementById('sTot').textContent=meds.length;
-  document.getElementById('sRep').textContent=reps.length;
-  const s=meds.filter(m=>dl(m)!==null).sort((a,b)=>dl(a)-dl(b));
-  if(s.length){const d=dl(s[0]);document.getElementById('sNext').textContent=d<=0?'TODAY':d+'d';document.getElementById('sNextS').textContent=s[0].name+' · '+s[0].member}
-  else{document.getElementById('sNext').textContent='—';document.getElementById('sNextS').textContent='No data'}
-  if(low.length){
-    document.getElementById('abar').classList.add('on');
-    document.getElementById('alist').innerHTML=low.map(m=>`<li><strong>${e(m.name)}</strong> (${e(m.member)}) — ${m.qty} left, ~${dl(m)} days · Refill by ${rd(m)}</li>`).join('');
-  }else document.getElementById('abar').classList.remove('on');
-  const tb=document.getElementById('dtb');
-  if(!meds.length){tb.innerHTML='<tr><td colspan="6"><div class="es"><div class="em">💊</div>No medicines added yet</div></td></tr>';return}
-  tb.innerHTML=meds.map(m=>`<tr><td><strong>${e(m.name)}</strong></td><td><span class="chip">${e(m.member)}</span></td><td>${m.qty}</td><td>${e(m.dose)}</td><td>${dl(m)!==null?dl(m):'—'}</td><td>${sb(dl(m))}</td></tr>`).join('');
-}
+            if (type === 'Checkup') {
+                bg.style.transform = 'translateX(0)';
+                df.className = "space-y-6 bg-brand-50/50 dark:bg-brand-900/10 p-6 rounded-[1.5rem] border border-brand-100/50 dark:border-brand-900/30 transition-colors duration-300";
+                df.innerHTML = `
+                    <div><label class="block text-[11px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 ml-1">Doctor / Clinic <span class="text-rose-500">*</span></label><input type="text" id="detail1" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Dr. Sarah (Dentist)"></div>
+                    <div><label class="block text-[11px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 ml-1">Drive Report Link (Optional)</label><div class="relative"><div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fa-brands fa-google-drive text-slate-400 text-lg"></i></div><input type="url" id="reportLink" class="input-premium w-full p-4 pl-12 rounded-2xl font-medium placeholder:text-slate-400" placeholder="Paste link here..."></div></div>
+                `;
+            } else if (type === 'Medicine') {
+                bg.style.transform = 'translateX(100%)';
+                df.className = "space-y-6 bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[1.5rem] border border-amber-100/50 dark:border-amber-900/30 transition-colors duration-300";
+                df.innerHTML = `
+                    <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Medicine Name <span class="text-rose-500">*</span></label><input type="text" id="detail1" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Paracetamol 500mg"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Total Pills <span class="text-rose-500">*</span></label><input type="number" id="detail2" required min="1" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 30"></div>
+                        <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Daily Dose <span class="text-rose-500">*</span></label><input type="number" id="detail3" required min="0.5" step="0.5" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 2"></div>
+                    </div>
+                `;
+            } else if (type === 'Vital') {
+                bg.style.transform = 'translateX(200%)';
+                df.className = "space-y-6 bg-rose-50/50 dark:bg-rose-900/10 p-6 rounded-[1.5rem] border border-rose-100/50 dark:border-rose-900/30 transition-colors duration-300";
+                df.innerHTML = `
+                    <div><label class="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2 ml-1">Test / Vital Name <span class="text-rose-500">*</span></label><input type="text" id="detail1" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Fasting Blood Sugar, Height"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2 ml-1">Value <span class="text-rose-500">*</span></label><input type="text" id="detail2" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 110, 180"></div>
+                        <div><label class="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2 ml-1">Unit</label><input type="text" id="detail3" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. mg/dL, cm"></div>
+                    </div>
+                    <div><label class="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2 ml-1">Drive Report Link (Optional)</label><div class="relative"><div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fa-brands fa-google-drive text-slate-400 text-lg"></i></div><input type="url" id="reportLink" class="input-premium w-full p-4 pl-12 rounded-2xl font-medium placeholder:text-slate-400" placeholder="Paste link here..."></div></div>
+                `;
+            }
+        }
 
-function renderMeds(data){
-  data=data||meds;const tb=document.getElementById('mtb');
-  if(!data.length){tb.innerHTML='<tr><td colspan="8"><div class="es"><div class="em">💊</div>No medicines yet</div></td></tr>';return}
-  tb.innerHTML=data.map(m=>`<tr>
-    <td><strong>${e(m.name)}</strong>${m.doctor?`<br><small style="color:var(--muted)">Dr.${e(m.doctor)}</small>`:''}${m.notes?`<br><small style="color:var(--muted)">${e(m.notes)}</small>`:''}
-    </td><td><span class="chip">${e(m.member)}</span></td><td>${m.qty}</td><td>${e(m.dose)}</td>
-    <td>${dl(m)!==null?dl(m):'—'}</td><td>${rd(m)}</td><td>${sb(dl(m))}</td>
-    <td style="white-space:nowrap">
-      <button class="ab e" onclick='oem(${JSON.stringify(m)})'>✏️ Edit</button>
-      <button class="ab d" onclick="delM(${m.row},'${e(m.name)}')">🗑</button>
-    </td></tr>`).join('');
-}
+        function toggleLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) { overlay.classList.remove('hidden'); overlay.classList.add('flex'); setTimeout(() => overlay.style.opacity = '1', 10); } 
+            else { overlay.style.opacity = '0'; setTimeout(() => { overlay.classList.add('hidden'); overlay.classList.remove('flex'); }, 300); }
+        }
 
-function filMbr(mbr,el){document.querySelectorAll('.mp').forEach(p=>p.classList.remove('active'));el.classList.add('active');curMbr=mbr;renderMbr()}
-function renderMbr(){
-  const data=curMbr==='All'?meds:meds.filter(m=>m.member===curMbr);
-  document.getElementById('mct').textContent=curMbr==='All'?'👥 All Members':curMbr+"'s Medicines";
-  const tb=document.getElementById('mmtb');
-  if(!data.length){tb.innerHTML='<tr><td colspan="7"><div class="es"><div class="em">💊</div>No medicines</div></td></tr>';return}
-  tb.innerHTML=data.map(m=>`<tr>
-    <td><strong>${e(m.name)}</strong>${curMbr==='All'?` <span class="chip">${e(m.member)}</span>`:''}</td>
-    <td>${m.qty}</td><td>${e(m.dose)}</td><td>${dl(m)!==null?dl(m):'—'}</td><td>${rd(m)}</td><td>${sb(dl(m))}</td>
-    <td style="white-space:nowrap">
-      <button class="ab e" onclick='oem(${JSON.stringify(m)})'>✏️</button>
-      <button class="ab d" onclick="delM(${m.row},'${e(m.name)}')">🗑</button>
-    </td></tr>`).join('');
-}
+        async function fetchData() {
+            toggleLoading(true);
+            try {
+                const response = await fetch(APPS_SCRIPT_URL);
+                const json = await response.json();
+                healthData = json.data || [];
+                extractFamilyMembers();
+                renderAll();
+            } catch (error) {
+                console.error("Fetch error:", error);
+                alert("Failed to sync. Please check your App Script URL.");
+            } finally {
+                toggleLoading(false);
+            }
+        }
 
-function renderRefills(){
-  const l=document.getElementById('rilist');
-  const data=meds.filter(m=>dl(m)!==null).sort((a,b)=>dl(a)-dl(b));
-  if(!data.length){l.innerHTML='<div class="es"><div class="em">📅</div>No refill data</div>';return}
-  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  l.innerHTML=data.map(m=>{
-    const d=dl(m),dt=new Date();dt.setDate(dt.getDate()+d);
-    const col=d<=3?'var(--danger)':d<=7?'var(--warn)':'var(--accent2)';
-    return `<div class="ri">
-      <div class="rdb"><div class="rdy">${dt.getDate()}</div><div class="rmn">${M[dt.getMonth()]}</div></div>
-      <div class="rinfo"><h4>${e(m.name)}</h4><p><span class="chip">${e(m.member)}</span> · ${e(m.dose)}/day · ${m.qty} left</p></div>
-      <div class="dp" style="color:${col}">${d}d</div>
-    </div>`;
-  }).join('');
-}
+        function extractFamilyMembers() {
+            const memberRecords = healthData.filter(r => r.Type === 'Member');
+            familyMembersList = [...new Set(memberRecords.map(r => r.Family_Member))];
+            healthData.forEach(r => { if(r.Family_Member && r.Type !== 'Member' && !familyMembersList.includes(r.Family_Member)) familyMembersList.push(r.Family_Member); });
+            populateMemberDropdowns();
+        }
 
-function renderReps(){
-  const g=document.getElementById('rg');
-  if(!reps.length){g.innerHTML='<div class="es" style="grid-column:1/-1"><div class="em">🧪</div>No reports yet</div>';return}
-  const ic={blood:'🩸',ecg:'❤️',thyroid:'🦋',bone:'🦴',xray:'🩻',scan:'🔬',sugar:'🩸'};
-  function ico(n){n=n.toLowerCase();for(const k in ic)if(n.includes(k))return ic[k];return'🧪'}
-  g.innerHTML=reps.map(r=>`
-    <div class="rc">
-      <div class="ric">${ico(r.test)}</div>
-      <h4>${e(r.test)}</h4>
-      <div><span class="chip">${e(r.member)}</span></div>
-      <div class="rm">📅 ${e(r.date)}${r.lab?' · '+e(r.lab):''}</div>
-      ${r.finding?`<div class="rf">📋 ${e(r.finding)}</div>`:''}
-      <div class="ra">
-        ${r.link?`<a href="${e(r.link)}" target="_blank" class="ol">🔗 Open</a>`:''}
-        <button class="ab e" onclick='orem(${JSON.stringify(r)})'>✏️ Edit</button>
-        <button class="ab d" onclick="delR(${r.row},'${e(r.test)}')">🗑</button>
-      </div>
-    </div>`).join('');
-}
+        function populateMemberDropdowns() {
+            const select = document.getElementById('memberName');
+            select.innerHTML = '<option value="" disabled selected>Select member...</option>';
+            familyMembersList.forEach(m => select.innerHTML += `<option value="${m}">${m}</option>`);
+        }
 
-// ════════════════ CRUD ════════════════
-async function saveMed(){
-  const mem=v('mm'),nm=v('mn').trim(),qty=v('mq'),dose=v('md').trim(),dt=v('mdt'),doc=v('mdr').trim(),nt=v('mnt').trim();
-  if(!mem||!nm||!qty||!dose||!dt){showToast('Fill all required (*) fields','error');return}
-  const b=document.getElementById('smb');b.disabled=true;b.textContent='Saving…';
-  try{await post({action:'addMedicine',member:mem,name:nm,qty:+qty,dose,date:dt,doctor:doc,notes:nt});showToast('✅ Saved!','success');clearMed();await loadAll()}
-  catch(ex){showToast('Error: '+ex.message,'error')}
-  b.disabled=false;b.textContent='💾 Save Medicine';
-}
-function clearMed(){['mm','mn','mq','md','mdr','mnt'].forEach(i=>document.getElementById(i).value='');setDates()}
+        function openAddMemberModal() {
+            document.getElementById('addMemberModal').classList.add('active');
+            setTimeout(() => document.getElementById('addMemberModalContent').style.transform = 'scale(1)', 10);
+            document.getElementById('newMemberName').focus();
+        }
+        function closeAddMemberModal() {
+            document.getElementById('addMemberModalContent').style.transform = 'scale(0.95)';
+            setTimeout(() => document.getElementById('addMemberModal').classList.remove('active'), 200);
+        }
+        async function submitNewMember(e) {
+            e.preventDefault();
+            if (APPS_SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") { alert("Action blocked: Please link your Google Drive first."); return; }
+            
+            const name = document.getElementById('newMemberName').value.trim();
+            if(!name) return;
 
-function oem(m){
-  sv('emr',m.row);sv('emem',m.member);sv('emn',m.name);sv('emq',m.qty);sv('emd',m.dose);sv('emdt',m.date);sv('emdr',m.doctor||'');sv('emnt',m.notes||'');
-  document.getElementById('emm').classList.add('open');
-}
-async function updMed(){
-  const row=v('emr'),mem=v('emem'),nm=v('emn').trim(),qty=v('emq'),dose=v('emd').trim(),dt=v('emdt'),doc=v('emdr').trim(),nt=v('emnt').trim();
-  if(!mem||!nm||!qty||!dose||!dt){showToast('Fill all fields','error');return}
-  try{await post({action:'updateMedicine',row:+row,member:mem,name:nm,qty:+qty,dose,date:dt,doctor:doc,notes:nt});showToast('✅ Updated!','success');cm('emm');await loadAll()}
-  catch(ex){showToast('Error: '+ex.message,'error')}
-}
-async function delM(row,nm){
-  if(!confirm(`Delete "${nm}"?`))return;
-  try{await post({action:'deleteMedicine',row:+row});showToast('🗑 Deleted','success');await loadAll()}
-  catch(ex){showToast('Error: '+ex.message,'error')}
-}
+            const payload = { 
+                timestamp: new Date().toISOString(), 
+                type: 'Member', 
+                member: name,
+                detail1: document.getElementById('newMemberBloodType').value,
+                detail2: document.getElementById('newMemberAllergies').value
+            };
+            
+            closeAddMemberModal();
+            toggleLoading(true);
+            try {
+                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                document.getElementById('newMemberName').value = "";
+                document.getElementById('newMemberBloodType').value = "";
+                document.getElementById('newMemberAllergies').value = "";
+                setTimeout(() => fetchData(), 1500); 
+            } catch (error) {
+                alert("Failed to save member."); toggleLoading(false);
+            }
+        }
 
-async function saveRep(){
-  const mem=v('rm'),tst=v('rn').trim(),dt=v('rdt'),lab=v('rl').trim(),fnd=v('rf').trim(),lnk=v('rk').trim();
-  if(!mem||!tst||!dt||!lnk){showToast('Fill all required (*) fields','error');return}
-  const b=document.getElementById('srb');b.disabled=true;b.textContent='Saving…';
-  try{await post({action:'addReport',member:mem,test:tst,date:dt,lab,finding:fnd,link:lnk});showToast('✅ Saved!','success');clearRep();await loadAll()}
-  catch(ex){showToast('Error: '+ex.message,'error')}
-  b.disabled=false;b.textContent='💾 Save Report';
-}
-function clearRep(){['rm','rn','rl','rf','rk'].forEach(i=>document.getElementById(i).value='');setDates()}
+        async function submitRecord(e) {
+            e.preventDefault();
+            if (APPS_SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") { alert("Action blocked: Please link your Google Drive first."); return; }
 
-function orem(r){
-  sv('err',r.row);sv('erem',r.member);sv('ern',r.test);sv('erdt',r.date);sv('erl',r.lab||'');sv('erf',r.finding||'');sv('erk',r.link||'');
-  document.getElementById('erm').classList.add('open');
-}
-async function updRep(){
-  const row=v('err'),mem=v('erem'),tst=v('ern').trim(),dt=v('erdt'),lab=v('erl').trim(),fnd=v('erf').trim(),lnk=v('erk').trim();
-  try{await post({action:'updateReport',row:+row,member:mem,test:tst,date:dt,lab,finding:fnd,link:lnk});showToast('✅ Updated!','success');cm('erm');await loadAll()}
-  catch(ex){showToast('Error: '+ex.message,'error')}
-}
-async function delR(row,nm){
-  if(!confirm(`Delete report "${nm}"?`))return;
-  try{await post({action:'deleteReport',row:+row});showToast('🗑 Deleted','success');await loadAll()}
-  catch(ex){showToast('Error: '+ex.message,'error')}
-}
+            const payload = {
+                timestamp: new Date().toISOString(),
+                date: document.getElementById('recordDate').value,
+                type: document.getElementById('recordType').value,
+                member: document.getElementById('memberName').value,
+                detail1: document.getElementById('detail1').value,
+                detail2: document.getElementById('detail2') ? document.getElementById('detail2').value : "",
+                detail3: document.getElementById('detail3') ? document.getElementById('detail3').value : "",
+                link: document.getElementById('reportLink') ? document.getElementById('reportLink').value : "",
+                notes: document.getElementById('notes').value || ""
+            };
 
-// ════════════════ HELPERS ════════════════
-function dl(m){const d=parseFloat(m.dose);if(!d||isNaN(d))return null;return Math.max(0,Math.floor(+m.qty/d))}
-function rd(m){const d=dl(m);if(d===null)return'—';const dt=new Date();dt.setDate(dt.getDate()+d);return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
-function sb(d){if(d===null)return'<span class="badge warn">On demand</span>';if(d<=3)return`<span class="badge low">🔴 ${d}d</span>`;if(d<=7)return`<span class="badge warn">⚠️ ${d}d</span>`;return`<span class="badge ok">✓ ${d}d</span>`}
-function e(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function v(id){return document.getElementById(id).value}
-function sv(id,val){document.getElementById(id).value=val}
-function cm(id){document.getElementById(id).classList.remove('open')}
-document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',ex=>{if(ex.target===o)o.classList.remove('open')}));
-function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.classList.remove('show'),3500)}
-</script>
+            toggleLoading(true);
+            try {
+                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                document.getElementById('addRecordForm').reset();
+                document.getElementById('recordDate').valueAsDate = new Date();
+                document.getElementById('futureDateHint').classList.add('hidden');
+                navigate('dashboard');
+                setTimeout(() => fetchData(), 1500); 
+            } catch (error) {
+                alert("Failed to save to Drive."); toggleLoading(false);
+            }
+        }
+
+        function downloadBackup() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Date,Type,Family_Member,Detail_1,Detail_2,Detail_3,Report_Link,Notes\n";
+            healthData.forEach(row => {
+                let r = [row.Date, row.Type, row.Family_Member, row.Detail_1, row.Detail_2, row.Detail_3, row.Report_Link, row.Notes]
+                    .map(v => `"${(v||'').replace(/"/g, '""')}"`).join(',');
+                csvContent += r + "\n";
+            });
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "FamilyHealthBackup_" + new Date().toISOString().split('T')[0] + ".csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderFamily();
+            renderMedicines();
+            renderReportsFilter();
+            renderReports();
+        }
+
+        function calculateMedicineStats(row) {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const startDate = new Date(row.Date); startDate.setHours(0,0,0,0);
+            const total = parseFloat(row.Detail_2) || 0;
+            const dose = parseFloat(row.Detail_3) || 1;
+            
+            let daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+            if (daysPassed < 0) daysPassed = 0; 
+            
+            const remain = Math.max(0, total - (daysPassed * dose));
+            const daysLeft = Math.floor(remain / dose);
+            let endD = new Date(today); endD.setDate(endD.getDate() + daysLeft);
+            let pct = Math.min(100, Math.max(0, (remain / total) * 100));
+            return { remain, total, dose, daysLeft, endD, pct };
+        }
+
+        function buildMedicineCard(row, includeMember = true) {
+            const stats = calculateMedicineStats(row);
+            let barColor = 'bg-gradient-to-r from-emerald-400 to-teal-400', statusPill = 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400';
+            if (stats.daysLeft <= 7) { barColor = 'bg-gradient-to-r from-amber-400 to-orange-400'; statusPill = 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400'; }
+            if (stats.daysLeft <= 2) { barColor = 'bg-gradient-to-r from-rose-500 to-red-500'; statusPill = 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-400'; }
+            
+            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${row.Family_Member}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span><span class="mx-2 text-slate-300 dark:text-slate-600">•</span><span class="text-xs font-bold text-slate-400"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</span></div>` : `<div class="text-xs font-bold text-slate-400 mt-1"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</div>`;
+            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${row.Family_Member}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-pills"></i></div>`;
+
+            return `
+                <div class="glass-card print-card p-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex items-center">${avatarHtml}<div><h3 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1}</h3>${memberHtml}</div></div>
+                        <div class="${statusPill} flex flex-col items-center justify-center px-3 py-2 rounded-xl border shrink-0"><span class="text-lg font-black leading-none">${stats.daysLeft}</span><span class="text-[8px] uppercase font-extrabold tracking-widest mt-1 opacity-80">Days</span></div>
+                    </div>
+                    <div class="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div class="flex justify-between text-xs mb-2 font-bold text-slate-500 uppercase tracking-wider"><span>${stats.remain} left</span><span>${stats.total} total</span></div>
+                        <div class="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-3 shadow-inner overflow-hidden p-0.5 no-print"><div class="${barColor} h-full rounded-full transition-all duration-1000 shadow-sm" style="width: ${stats.pct}%"></div></div>
+                    </div>
+                </div>`;
+        }
+
+        function buildHistoryItem(row, showMember = true) {
+            const d = new Date(row.Date);
+            const reportBtn = row.Report_Link ? `<a href="${row.Report_Link}" target="_blank" class="mt-4 inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 no-print"><i class="fa-brands fa-google-drive text-brand-500 mr-2"></i>View Document</a>` : '';
+            
+            let iconClass = "bg-brand-400 shadow-[0_0_8px_rgba(45,212,191,0.5)]", icon = "fa-user-doctor";
+            let titleHtml = `<h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1}</h4>`;
+            
+            if(row.Type === 'Vital') {
+                iconClass = "bg-rose-400 shadow-[0_0_8px_rgba(2fb,113,133,0.5)]"; icon = "fa-heart-pulse";
+                titleHtml = `<h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1} <span class="text-rose-500 ml-2">${row.Detail_2} <span class="text-sm font-bold opacity-80">${row.Detail_3||''}</span></span></h4>`;
+            }
+
+            const memberBadge = showMember ? `<span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest font-bold ml-3 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 no-print" onclick="openMemberProfile('${row.Family_Member}')">${row.Family_Member}</span>` : '';
+
+            return `
+                <div class="flex items-start mb-6 group print-card">
+                    <div class="flex flex-col items-center mr-5 no-print">
+                        <div class="h-10 w-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center z-10 shrink-0"><i class="fa-solid ${icon} ${iconClass.split(' ')[0].replace('bg-','text-')} text-sm"></i></div>
+                        <div class="h-full w-px bg-slate-200 dark:bg-slate-700 mt-2 min-h-[40px] group-last:hidden"></div>
+                    </div>
+                    <div class="glass-card p-5 flex-1 -mt-1 hover:shadow-lg transition-shadow">
+                        <div class="flex flex-wrap justify-between items-start gap-2">
+                            <div class="flex items-center">${titleHtml} ${memberBadge}</div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </div>
+                        ${row.Notes ? `<p class="text-sm text-slate-600 dark:text-slate-300 font-medium mt-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">"${row.Notes}"</p>` : ''}
+                        ${reportBtn}
+                    </div>
+                </div>`;
+        }
+
+        function renderDashboard() {
+            const alertsCont = document.getElementById('dashboardAlerts');
+            const actCont = document.getElementById('dashboardActivity');
+            const upcomingCont = document.getElementById('dashboardUpcoming');
+            const upcomingSec = document.getElementById('upcomingSection');
+            
+            let alertCount = 0, medCount = 0, recordCount = healthData.filter(r=>r.Type!=='Member').length;
+            healthData.forEach(r => { if(r.Type==='Medicine') medCount++; });
+            
+            document.getElementById('statFamily').innerText = familyMembersList.length;
+            document.getElementById('statMeds').innerText = medCount;
+            document.getElementById('statRecords').innerText = recordCount;
+
+            alertsCont.innerHTML = "";
+            healthData.filter(r => r.Type === 'Medicine').forEach(row => {
+                const { daysLeft } = calculateMedicineStats(row);
+                if (daysLeft <= 7) {
+                    alertCount++;
+                    const isCritical = daysLeft <= 2;
+                    const bgClass = isCritical ? 'bg-gradient-to-r from-rose-500 to-rose-600 shadow-rose-200 dark:shadow-none' : 'bg-gradient-to-r from-amber-400 to-amber-500 shadow-amber-200 dark:shadow-none';
+                    const icon = isCritical ? 'fa-circle-exclamation' : 'fa-bell';
+                    alertsCont.innerHTML += `
+                        <div class="${bgClass} shadow-lg p-5 rounded-[1.5rem] text-white flex items-center justify-between cursor-pointer hover:scale-[1.02] transition-transform" onclick="openMemberProfile('${row.Family_Member}')">
+                            <div class="flex items-center">
+                                <div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} border-2 border-white/50 text-white flex items-center justify-center font-black shadow-inner mr-4 shrink-0">${getInitials(row.Family_Member)}</div>
+                                <div><div class="text-white/90 text-[10px] font-black uppercase tracking-widest mb-0.5"><i class="fa-solid ${icon} mr-1"></i> Refill Needed</div><h3 class="font-extrabold text-lg text-white drop-shadow-sm">${row.Detail_1}</h3></div>
+                            </div>
+                            <div class="text-right bg-white/20 backdrop-blur-md px-3 py-2 rounded-xl border border-white/30 shrink-0"><div class="text-2xl font-black leading-none drop-shadow-md">${daysLeft}</div><div class="text-[8px] uppercase font-black tracking-widest mt-1 opacity-90">Days</div></div>
+                        </div>`;
+                }
+            });
+
+            const badge = document.getElementById('alertBadge');
+            document.getElementById('statusSubtitle').innerText = alertCount > 0 ? `You have ${alertCount} alert(s) today.` : "Everything looks healthy today!";
+            if (alertCount > 0) { badge.innerText = alertCount; badge.classList.remove('hidden'); } 
+            else { badge.classList.add('hidden'); alertsCont.innerHTML = `<div class="glass-card p-5 flex items-center"><div class="h-12 w-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mr-4 shrink-0"><i class="fa-solid fa-shield-check text-emerald-500 text-xl"></i></div><div><h4 class="font-extrabold text-slate-800 dark:text-white">Fully Stocked</h4><p class="text-sm text-slate-500">No immediate refills needed.</p></div></div>`; }
+
+            actCont.innerHTML = ""; upcomingCont.innerHTML = "";
+            const today = new Date(); today.setHours(0,0,0,0);
+            
+            const pastLogs = healthData.filter(r => (r.Type === 'Checkup' || r.Type === 'Vital') && new Date(r.Date) <= today).sort((a,b)=>new Date(b.Date)-new Date(a.Date)).slice(0,3);
+            const upcomingLogs = healthData.filter(r => r.Type === 'Checkup' && new Date(r.Date) > today).sort((a,b)=>new Date(a.Date)-new Date(b.Date));
+
+            pastLogs.forEach(r => actCont.innerHTML += buildHistoryItem(r, true));
+            if(pastLogs.length === 0) actCont.innerHTML = `<div class="glass-card p-8 text-center text-slate-400 font-medium">No recent activity.</div>`;
+
+            if (upcomingLogs.length > 0) {
+                upcomingSec.style.display = 'block';
+                upcomingLogs.forEach(r => {
+                    const d = new Date(r.Date);
+                    const daysAway = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+                    const timeTag = daysAway === 1 ? "Tomorrow" : `In ${daysAway} days`;
+                    upcomingCont.innerHTML += `
+                        <div class="glass-card p-5 border-l-4 border-l-brand-500 flex items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onclick="openMemberProfile('${r.Family_Member}')">
+                            <div class="h-12 w-12 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-500 flex items-center justify-center text-lg mr-4 shrink-0"><i class="fa-regular fa-calendar"></i></div>
+                            <div class="flex-1">
+                                <h4 class="font-extrabold text-slate-900 dark:text-white">${r.Detail_1}</h4>
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">${r.Family_Member} • ${d.toLocaleDateString()}</p>
+                            </div>
+                            <div class="bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">${timeTag}</div>
+                        </div>`;
+                });
+            } else { upcomingSec.style.display = 'none'; }
+        }
+
+        function renderFamily() {
+            const grid = document.getElementById('familyGridContainer');
+            grid.innerHTML = "";
+            
+            familyMembersList.forEach(member => {
+                const memData = healthData.filter(r => r.Family_Member === member);
+                const meds = memData.filter(r => r.Type === 'Medicine').length;
+                const activity = memData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').length;
+                
+                grid.innerHTML += `
+                    <div onclick="openMemberProfile('${member}')" class="glass-card p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group">
+                        <div class="h-20 w-20 rounded-full ${getAvatarClass(member)} text-white flex items-center justify-center text-2xl font-black shadow-inner mb-4 border-4 border-white dark:border-slate-800 group-hover:scale-105 transition-transform">${getInitials(member)}</div>
+                        <h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${member}</h4>
+                        <div class="mt-3 w-full flex justify-between px-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                            <span class="flex flex-col items-center bg-slate-50 dark:bg-slate-800/50 rounded-lg px-3 py-1.5 w-[45%]"><i class="fa-solid fa-pills text-brand-500 mb-1"></i> ${meds}</span>
+                            <span class="flex flex-col items-center bg-slate-50 dark:bg-slate-800/50 rounded-lg px-3 py-1.5 w-[45%]"><i class="fa-solid fa-stethoscope text-accent-500 mb-1"></i> ${activity}</span>
+                        </div>
+                    </div>`;
+            });
+            if(familyMembersList.length===0) grid.innerHTML = `<div class="col-span-full glass-card p-10 text-center"><p class="text-slate-500 font-medium">No family members found. Add one above!</p></div>`;
+        }
+
+        function renderMedicines() {
+            const cont = document.getElementById('allMedicinesContainer');
+            cont.innerHTML = "";
+            let hasData = false;
+            healthData.filter(r=>r.Type==='Medicine').forEach(row => { hasData = true; cont.innerHTML += buildMedicineCard(row, true); });
+            if(!hasData) cont.innerHTML = `<div class="col-span-full glass-card p-10 text-center"><p class="text-slate-500 font-medium">No medicines tracked.</p></div>`;
+        }
+
+        function renderReportsFilter() {
+            const filterCont = document.getElementById('reportFilterContainer');
+            filterCont.innerHTML = `<button onclick="setReportFilter('All')" class="report-filter-btn ${currentReportFilter==='All' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'} px-5 py-2 rounded-full font-bold text-sm shrink-0 transition-colors shadow-sm">All Family</button>`;
+            familyMembersList.forEach(m => {
+                const activeClasses = currentReportFilter === m ? 'bg-brand-500 text-white border-brand-500' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
+                filterCont.innerHTML += `<button onclick="setReportFilter('${m}')" class="report-filter-btn ${activeClasses} px-5 py-2 rounded-full font-bold text-sm shrink-0 transition-colors shadow-sm">${m}</button>`;
+            });
+        }
+        
+        function setReportFilter(member) { currentReportFilter = member; renderReportsFilter(); renderReports(); }
+
+        function renderReports() {
+            const cont = document.getElementById('allReportsContainer');
+            cont.innerHTML = "";
+            let history = healthData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').sort((a,b)=>new Date(b.Date)-new Date(a.Date));
+            if (currentReportFilter !== 'All') history = history.filter(r => r.Family_Member === currentReportFilter);
+            history.forEach(row => { cont.innerHTML += buildHistoryItem(row, currentReportFilter === 'All'); });
+            if(history.length===0) cont.innerHTML = `<div class="glass-card p-8 text-center text-slate-400 font-medium">No logs found for this selection.</div>`;
+        }
+
+        function printDoctorReport() {
+            if(!currentActiveMemberName) return;
+            const printCont = document.getElementById('printContainer');
+            const d = new Date().toLocaleDateString();
+            
+            const memberRow = healthData.find(r => r.Type === 'Member' && r.Family_Member === currentActiveMemberName);
+            const bType = memberRow?.Detail_1 || 'Unknown';
+            const alg = memberRow?.Detail_2 || 'None Listed';
+
+            const meds = currentProfileData.filter(r => r.Type === 'Medicine');
+            const history = currentProfileData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+            let html = `
+                <div class="print-header">
+                    <h1 style="margin:0; font-size: 24px;">Medical Summary: ${currentActiveMemberName}</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #555;">Generated on ${d} via Family Health Hub</p>
+                </div>
+                <div style="margin-bottom: 20px; padding: 10px; background: #f0f0f0; border-radius: 6px;">
+                    <strong>Blood Type:</strong> ${bType} | <strong>Allergies:</strong> ${alg}
+                </div>
+            `;
+
+            // Vitals Tracking (BMI Calculation injected here for print)
+            const htRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('height'));
+            const wtRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('weight'));
+            if (htRec && wtRec) {
+                let h = parseFloat(htRec.Detail_2);
+                let w = parseFloat(wtRec.Detail_2);
+                // Convert height to meters if in cm
+                if (htRec.Detail_3 && htRec.Detail_3.toLowerCase().includes('cm')) h = h / 100;
+                if (h > 0 && w > 0) {
+                    let bmi = (w / (h * h)).toFixed(1);
+                    html += `
+                        <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+                            <strong>Latest Calculated BMI:</strong> ${bmi} (Height: ${htRec.Detail_2}${htRec.Detail_3||''}, Weight: ${wtRec.Detail_2}${wtRec.Detail_3||''})
+                        </div>
+                    `;
+                }
+            }
+
+            html += `<h2>Active Medications (${meds.length})</h2><div class="print-grid">`;
+            if (meds.length === 0) html += `<p>No active medications.</p>`;
+            meds.forEach(m => {
+                const stats = calculateMedicineStats(m);
+                html += `
+                    <div class="print-card">
+                        <strong style="font-size: 16px;">${m.Detail_1}</strong><br>
+                        Dosage: ${stats.dose} / day<br>
+                        Remaining: ${stats.remain} pills (~${stats.daysLeft} days left)
+                    </div>`;
+            });
+            html += `</div>`;
+
+            html += `<h2>Recent Medical History</h2>`;
+            if (history.length === 0) html += `<p>No records found.</p>`;
+            history.forEach(c => {
+                const hd = new Date(c.Date).toLocaleDateString();
+                const valStr = c.Type === 'Vital' ? ` - <strong>${c.Detail_2} ${c.Detail_3||''}</strong>` : '';
+                html += `
+                    <div class="print-card">
+                        <span class="print-badge">${c.Type.toUpperCase()}</span> <strong>${hd}</strong><br>
+                        <span style="font-size: 16px;">${c.Detail_1}</span>${valStr}<br>
+                        ${c.Notes ? `<p style="margin: 5px 0 0 0; font-style: italic;">Notes: ${c.Notes}</p>` : ''}
+                    </div>`;
+            });
+
+            printCont.innerHTML = html;
+            window.print();
+        }
+
+        function openMemberProfile(memberName) {
+            currentActiveMemberName = memberName;
+            currentProfileData = healthData.filter(r => r.Family_Member === memberName);
+            
+            document.getElementById('profileAvatar').className = `h-24 w-24 rounded-full text-white flex items-center justify-center text-4xl font-black shadow-inner border-4 border-white dark:border-slate-800 shadow-soft shrink-0 ${getAvatarClass(memberName)}`;
+            document.getElementById('profileAvatar').innerText = getInitials(memberName);
+            document.getElementById('profileName').innerText = memberName;
+            
+            const memberRow = healthData.find(r => r.Type === 'Member' && r.Family_Member === memberName);
+            const badgesCont = document.getElementById('profileEmergencyInfo');
+            badgesCont.innerHTML = '';
+            if (memberRow) {
+                if (memberRow.Detail_1) badgesCont.innerHTML += `<span class="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-3 py-1 rounded-lg text-xs font-bold border border-rose-200 dark:border-rose-800"><i class="fa-solid fa-droplet mr-1"></i> Blood: ${memberRow.Detail_1}</span>`;
+                if (memberRow.Detail_2) badgesCont.innerHTML += `<span class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-3 py-1 rounded-lg text-xs font-bold border border-amber-200 dark:border-amber-800"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Allergies: ${memberRow.Detail_2}</span>`;
+            }
+
+            const meds = currentProfileData.filter(r => r.Type === 'Medicine');
+            const history = currentProfileData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').sort((a, b) => new Date(b.Date) - new Date(a.Date));
+            
+            // BMI Calculation for dashboard display
+            const htRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('height'));
+            const wtRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('weight'));
+            if (htRec && wtRec) {
+                let h = parseFloat(htRec.Detail_2); let w = parseFloat(wtRec.Detail_2);
+                if (htRec.Detail_3 && htRec.Detail_3.toLowerCase().includes('cm')) h = h / 100;
+                if (h > 0 && w > 0) {
+                    let bmi = (w / (h * h)).toFixed(1);
+                    badgesCont.innerHTML += `<span class="bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 px-3 py-1 rounded-lg text-xs font-bold border border-brand-200 dark:border-brand-800"><i class="fa-solid fa-weight-scale mr-1"></i> BMI: ${bmi}</span>`;
+                }
+            }
+            
+            document.getElementById('profileStats').innerText = `${meds.length} Active Meds • ${history.length} Logs`;
+
+            const vitals = currentProfileData.filter(r => r.Type === 'Vital');
+            const chartWrapper = document.getElementById('chartContainerWrapper');
+            const selector = document.getElementById('chartTestSelector');
+            const noVitalsMsg = document.getElementById('noVitalsMsg');
+
+            if (vitals.length > 0) {
+                chartWrapper.classList.remove('hidden'); selector.classList.remove('hidden'); noVitalsMsg.classList.add('hidden');
+                selector.innerHTML = '';
+                [...new Set(vitals.map(v => v.Detail_1))].forEach(t => selector.innerHTML += `<option value="${t}">${t}</option>`);
+                updateChart();
+            } else {
+                chartWrapper.classList.add('hidden'); selector.classList.add('hidden'); noVitalsMsg.classList.remove('hidden');
+                if(activeChart) activeChart.destroy();
+            }
+
+            const medsCont = document.getElementById('profileMedsContainer');
+            medsCont.innerHTML = "";
+            meds.forEach(m => medsCont.innerHTML += buildMedicineCard(m, false));
+            if(meds.length===0) medsCont.innerHTML = `<div class="glass-card p-6 text-slate-400 italic text-sm">No active medicines.</div>`;
+
+            const histCont = document.getElementById('profileHistoryContainer');
+            histCont.innerHTML = "";
+            history.forEach(h => histCont.innerHTML += buildHistoryItem(h, false));
+            if(history.length===0) histCont.innerHTML = `<div class="glass-card p-6 text-slate-400 italic text-sm">No history logged.</div>`;
+
+            navigate('member-detail');
+        }
+
+        function updateChart() {
+            const testName = document.getElementById('chartTestSelector').value;
+            const testData = currentProfileData.filter(r => r.Type === 'Vital' && r.Detail_1 === testName).sort((a,b) => new Date(a.Date) - new Date(b.Date));
+            const labels = testData.map(d => { const dt = new Date(d.Date); return `${dt.getMonth()+1}/${dt.getDate()}`; });
+            const dataPoints = testData.map(d => parseFloat(String(d.Detail_2).split('/')[0]) || 0);
+            const unit = testData.length > 0 ? testData[0].Detail_3 : '';
+
+            if (activeChart) activeChart.destroy();
+            const ctx = document.getElementById('vitalsChart').getContext('2d');
+            let gradient = ctx.createLinearGradient(0, 0, 0, 250);
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? '#334155' : '#f1f5f9'; const textColor = isDark ? '#94a3b8' : '#94a3b8';
+            gradient.addColorStop(0, 'rgba(244, 63, 94, 0.5)'); gradient.addColorStop(1, 'rgba(244, 63, 94, 0.0)');
+
+            activeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${testName} ${unit ? `(${unit})` : ''}`, data: dataPoints, borderColor: '#f43f5e', backgroundColor: gradient,
+                        borderWidth: 3, pointBackgroundColor: isDark ? '#1e293b' : '#ffffff', pointBorderColor: '#f43f5e', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6, fill: true, tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', padding: 10, titleFont: { family: "'Plus Jakarta Sans', sans-serif" }, bodyFont: { family: "'Plus Jakarta Sans', sans-serif", size: 14, weight: 'bold' }, displayColors: false, callbacks: { label: function(ctx) { return `${ctx.parsed.y} ${unit}`; } } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 10, weight: 'bold' }, color: textColor } },
+                        y: { border: { display: false }, grid: { color: gridColor }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 10, weight: 'bold' }, color: textColor } }
+                    }
+                }
+            });
+        }
+
+        function toggleSearch() {
+            const overlay = document.getElementById('searchOverlay');
+            if (overlay.classList.contains('active')) {
+                overlay.classList.remove('active'); document.getElementById('globalSearchInput').value = '';
+                document.getElementById('searchResultsContainer').innerHTML = `<div class="text-center py-20 text-slate-400"><i class="fa-solid fa-keyboard text-4xl mb-4 opacity-50"></i><p class="font-medium">Start typing to search your secure vault.</p></div>`;
+            } else {
+                overlay.classList.add('active'); setTimeout(() => document.getElementById('globalSearchInput').focus(), 100);
+            }
+        }
+
+        function executeSearch() {
+            const query = document.getElementById('globalSearchInput').value.toLowerCase();
+            const container = document.getElementById('searchResultsContainer');
+            if (query.length === 0) { container.innerHTML = `<div class="text-center py-20 text-slate-400"><i class="fa-solid fa-keyboard text-4xl mb-4 opacity-50"></i><p class="font-medium">Start typing to search your secure vault.</p></div>`; return; }
+            const results = healthData.filter(r => r.Type !== 'Member' && ( (r.Family_Member && r.Family_Member.toLowerCase().includes(query)) || (r.Detail_1 && r.Detail_1.toLowerCase().includes(query)) || (r.Notes && r.Notes.toLowerCase().includes(query)) ));
+            if (results.length === 0) { container.innerHTML = `<div class="text-center py-20 text-slate-400"><i class="fa-solid fa-ghost text-4xl mb-4 opacity-50"></i><p class="font-medium">No records found matching "${query}".</p></div>`; return; }
+
+            container.innerHTML = `<h3 class="text-sm font-bold text-brand-500 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Found ${results.length} Record(s)</h3>`;
+            const listDiv = document.createElement('div'); listDiv.className = 'space-y-4';
+            results.forEach(row => { if (row.Type === 'Medicine') listDiv.innerHTML += buildMedicineCard(row, true); else listDiv.innerHTML += buildHistoryItem(row, true); });
+            container.appendChild(listDiv);
+        }
+
+        function loadDemoData() {
+            healthData = [
+                { Type: "Member", Family_Member: "Mom", Detail_1: "O+", Detail_2: "Penicillin" },
+                { Type: "Member", Family_Member: "Dad", Detail_1: "A-", Detail_2: "None" },
+                { Type: "Member", Family_Member: "Tommy", Detail_1: "O+", Detail_2: "Peanuts" },
+                { Date: "2024-05-10", Type: "Checkup", Family_Member: "Mom", Detail_1: "Dr. Smith (Cardiology)", Notes: "Blood pressure is normal.", Report_Link: "https://drive.google.com" },
+                { Date: "2026-10-20", Type: "Checkup", Family_Member: "Tommy", Detail_1: "City Dental Clinic", Notes: "Upcoming teeth cleaning.", Report_Link: "" }, 
+                { Date: "2026-06-15", Type: "Checkup", Family_Member: "Dad", Detail_1: "Eye Exam", Notes: "Annual checkup", Report_Link: "" },
+                { Date: "2024-05-01", Type: "Medicine", Family_Member: "Dad", Detail_1: "Atorvastatin 20mg", Detail_2: "30", Detail_3: "1" }, 
+                { Date: new Date().toISOString().split('T')[0], Type: "Medicine", Family_Member: "Mom", Detail_1: "Vitamin D3", Detail_2: "90", Detail_3: "1" },
+                { Date: "2024-01-10", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "140", Detail_3: "mg/dL" },
+                { Date: "2024-02-15", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "135", Detail_3: "mg/dL" },
+                { Date: "2024-05-25", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "110", Detail_3: "mg/dL" },
+                { Date: "2024-05-20", Type: "Vital", Family_Member: "Mom", Detail_1: "Weight", Detail_2: "65", Detail_3: "kg" },
+                { Date: "2024-05-20", Type: "Vital", Family_Member: "Mom", Detail_1: "Height", Detail_2: "165", Detail_3: "cm" }
+            ];
+            extractFamilyMembers();
+            renderAll();
+        }
+    </script>
 </body>
 </html>
