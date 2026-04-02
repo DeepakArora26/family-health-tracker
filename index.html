@@ -152,9 +152,6 @@
         </div>
 
         <div class="mt-auto p-6 pb-8 space-y-3">
-            <button onclick="downloadBackup()" class="w-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center space-x-2 side-nav-btn" title="Backup to CSV">
-                <i class="fa-solid fa-cloud-arrow-down shrink-0"></i><span class="hide-on-collapse">Backup CSV</span>
-            </button>
             <button onclick="navigate('add')" class="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-black py-3.5 rounded-xl shadow-glow-green hover:scale-[1.02] transition-all flex items-center justify-center space-x-2 side-nav-btn" title="Add Record">
                 <i class="fa-solid fa-plus shrink-0 text-xl"></i><span class="hide-on-collapse">Add Record</span>
             </button>
@@ -175,7 +172,6 @@
                 <h1 class="text-xl font-black tracking-tight text-slate-900 dark:text-white">Health<span class="text-brand-500">Hub</span></h1>
             </div>
             <div class="flex items-center space-x-3">
-                <button onclick="downloadBackup()" class="h-10 w-10 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-cloud-arrow-down"></i></button>
                 <button onclick="toggleSearch()" class="h-10 w-10 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-magnifying-glass"></i></button>
                 <button onclick="toggleDarkMode()" class="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-moon dark:hidden"></i><i class="fa-solid fa-sun hidden dark:block text-amber-400"></i></button>
             </div>
@@ -190,11 +186,6 @@
 
         <!-- Scrollable Content -->
         <div class="flex-1 overflow-y-auto p-4 md:p-10 pb-32 md:pb-10 relative" id="mainScrollArea">
-
-            <!-- Desktop Sync Button -->
-            <button onclick="fetchData()" class="hidden md:flex absolute top-10 right-24 h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors z-50 mr-4">
-                <i class="fa-solid fa-rotate-right text-lg"></i>
-            </button>
 
             <!-- 1. DASHBOARD PAGE -->
             <div id="page-dashboard" class="page-view active max-w-6xl mx-auto">
@@ -395,7 +386,7 @@
     <!-- ========================================== -->
     <!-- MOBILE QUICK ADD FAB                       -->
     <!-- ========================================== -->
-    <button onclick="navigate('add')" id="mobileFabAdd" class="md:hidden fixed bottom-24 right-6 h-14 w-14 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center text-white text-2xl z-40 transition-transform active:scale-90">
+    <button onclick="navigate('add')" id="mobileFabAdd" class="md:hidden fixed bottom-28 right-6 h-14 w-14 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center text-white text-2xl z-40 transition-transform active:scale-90">
         <i class="fa-solid fa-plus"></i>
     </button>
 
@@ -529,7 +520,6 @@
                 if(activeMob) { activeMob.classList.remove('text-slate-500'); activeMob.classList.add('text-brand-400'); }
             }
 
-            // Handle Mobile FAB visibility
             const fab = document.getElementById('mobileFabAdd');
             if(pageId === 'add') fab.classList.add('hidden'); else fab.classList.remove('hidden');
         }
@@ -676,23 +666,6 @@
             }
         }
 
-        function downloadBackup() {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Date,Type,Family_Member,Detail_1,Detail_2,Detail_3,Report_Link,Notes\n";
-            healthData.forEach(row => {
-                let r = [row.Date, row.Type, row.Family_Member, row.Detail_1, row.Detail_2, row.Detail_3, row.Report_Link, row.Notes]
-                    .map(v => `"${(v||'').replace(/"/g, '""')}"`).join(',');
-                csvContent += r + "\n";
-            });
-            var encodedUri = encodeURI(csvContent);
-            var link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "FamilyHealthBackup_" + new Date().toISOString().split('T')[0] + ".csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
         function renderAll() {
             renderDashboard();
             renderFamily();
@@ -739,7 +712,7 @@
                 </div>`;
         }
 
-        function buildHistoryItem(row, showMember = true) {
+        function buildHistoryItem(row, showMember = true, isSearch = false) {
             const d = new Date(row.Date);
             const reportBtn = row.Report_Link ? `<a href="${row.Report_Link}" target="_blank" class="mt-4 inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 no-print"><i class="fa-brands fa-google-drive text-brand-500 mr-2"></i>View Document</a>` : '';
             
@@ -752,6 +725,21 @@
             }
 
             const memberBadge = showMember ? `<span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest font-bold ml-3 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 no-print" onclick="openMemberProfile('${row.Family_Member}')">${row.Family_Member}</span>` : '';
+
+            if (isSearch) {
+                return `
+                    <div class="glass-card p-5 hover:shadow-lg transition-shadow mb-4 print-card">
+                        <div class="flex flex-wrap justify-between items-start gap-2">
+                            <div class="flex items-center">
+                                <div class="h-12 w-12 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center mr-4 shrink-0 no-print"><i class="fa-solid ${icon} ${iconClass.split(' ')[0].replace('bg-','text-')} text-lg"></i></div>
+                                <div>${titleHtml} <div class="mt-1">${memberBadge}</div></div>
+                            </div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </div>
+                        ${row.Notes ? `<p class="text-sm text-slate-600 dark:text-slate-300 font-medium mt-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">"${row.Notes}"</p>` : ''}
+                        ${reportBtn}
+                    </div>`;
+            }
 
             return `
                 <div class="flex items-start mb-6 group print-card">
@@ -907,21 +895,15 @@
                 </div>
             `;
 
-            // Vitals Tracking (BMI Calculation injected here for print)
             const htRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('height'));
             const wtRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('weight'));
             if (htRec && wtRec) {
                 let h = parseFloat(htRec.Detail_2);
                 let w = parseFloat(wtRec.Detail_2);
-                // Convert height to meters if in cm
                 if (htRec.Detail_3 && htRec.Detail_3.toLowerCase().includes('cm')) h = h / 100;
                 if (h > 0 && w > 0) {
                     let bmi = (w / (h * h)).toFixed(1);
-                    html += `
-                        <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
-                            <strong>Latest Calculated BMI:</strong> ${bmi} (Height: ${htRec.Detail_2}${htRec.Detail_3||''}, Weight: ${wtRec.Detail_2}${wtRec.Detail_3||''})
-                        </div>
-                    `;
+                    html += `<div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;"><strong>Latest Calculated BMI:</strong> ${bmi} (Height: ${htRec.Detail_2}${htRec.Detail_3||''}, Weight: ${wtRec.Detail_2}${wtRec.Detail_3||''})</div>`;
                 }
             }
 
@@ -929,12 +911,7 @@
             if (meds.length === 0) html += `<p>No active medications.</p>`;
             meds.forEach(m => {
                 const stats = calculateMedicineStats(m);
-                html += `
-                    <div class="print-card">
-                        <strong style="font-size: 16px;">${m.Detail_1}</strong><br>
-                        Dosage: ${stats.dose} / day<br>
-                        Remaining: ${stats.remain} pills (~${stats.daysLeft} days left)
-                    </div>`;
+                html += `<div class="print-card"><strong style="font-size: 16px;">${m.Detail_1}</strong><br>Dosage: ${stats.dose} / day<br>Remaining: ${stats.remain} pills (~${stats.daysLeft} days left)</div>`;
             });
             html += `</div>`;
 
@@ -943,12 +920,7 @@
             history.forEach(c => {
                 const hd = new Date(c.Date).toLocaleDateString();
                 const valStr = c.Type === 'Vital' ? ` - <strong>${c.Detail_2} ${c.Detail_3||''}</strong>` : '';
-                html += `
-                    <div class="print-card">
-                        <span class="print-badge">${c.Type.toUpperCase()}</span> <strong>${hd}</strong><br>
-                        <span style="font-size: 16px;">${c.Detail_1}</span>${valStr}<br>
-                        ${c.Notes ? `<p style="margin: 5px 0 0 0; font-style: italic;">Notes: ${c.Notes}</p>` : ''}
-                    </div>`;
+                html += `<div class="print-card"><span class="print-badge">${c.Type.toUpperCase()}</span> <strong>${hd}</strong><br><span style="font-size: 16px;">${c.Detail_1}</span>${valStr}<br>${c.Notes ? `<p style="margin: 5px 0 0 0; font-style: italic;">Notes: ${c.Notes}</p>` : ''}</div>`;
             });
 
             printCont.innerHTML = html;
@@ -974,7 +946,6 @@
             const meds = currentProfileData.filter(r => r.Type === 'Medicine');
             const history = currentProfileData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').sort((a, b) => new Date(b.Date) - new Date(a.Date));
             
-            // BMI Calculation for dashboard display
             const htRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('height'));
             const wtRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('weight'));
             if (htRec && wtRec) {
@@ -1085,6 +1056,7 @@
                 { Date: new Date().toISOString().split('T')[0], Type: "Medicine", Family_Member: "Mom", Detail_1: "Vitamin D3", Detail_2: "90", Detail_3: "1" },
                 { Date: "2024-01-10", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "140", Detail_3: "mg/dL" },
                 { Date: "2024-02-15", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "135", Detail_3: "mg/dL" },
+                { Date: "2024-04-05", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "120", Detail_3: "mg/dL" },
                 { Date: "2024-05-25", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "110", Detail_3: "mg/dL" },
                 { Date: "2024-05-20", Type: "Vital", Family_Member: "Mom", Detail_1: "Weight", Detail_2: "65", Detail_3: "kg" },
                 { Date: "2024-05-20", Type: "Vital", Family_Member: "Mom", Detail_1: "Height", Detail_2: "165", Detail_3: "cm" }
