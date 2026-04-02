@@ -127,11 +127,11 @@
                 <i class="fa-solid fa-lock text-brand-500 text-3xl"></i>
             </div>
             
-            <h1 class="text-3xl font-black text-slate-900 dark:text-white mb-2">Secure Vault Setup</h1>
-            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8">Enter your private Google Apps Script credentials to unlock your family's health data.</p>
+            <h1 id="setupTitle" class="text-3xl font-black text-slate-900 dark:text-white mb-2">Secure Vault Setup</h1>
+            <p id="setupSubtitle" class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8">Enter your private Google Apps Script credentials to unlock your family's health data.</p>
             
             <form onsubmit="saveCredentials(event)" class="text-left space-y-5">
-                <div>
+                <div id="urlInputContainer">
                     <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 ml-1">Apps Script Web App URL <span class="text-rose-500">*</span></label>
                     <input type="url" id="authUrl" required class="input-premium w-full p-4 rounded-xl font-medium text-sm" placeholder="https://script.google.com/macros/s/.../exec">
                 </div>
@@ -143,6 +143,9 @@
                     Unlock Vault
                 </button>
             </form>
+            <div id="resetUrlContainer" class="mt-4 hidden text-center">
+                <button onclick="resetUrl()" class="text-xs font-bold text-slate-400 hover:text-brand-500 transition-colors">Need to change Web App URL?</button>
+            </div>
             <p id="authError" class="text-rose-500 text-xs font-bold mt-4 hidden"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Incorrect password or invalid URL.</p>
         </div>
     </div>
@@ -560,6 +563,10 @@
             
             if (savedUrl) {
                 document.getElementById('authUrl').value = savedUrl;
+                document.getElementById('urlInputContainer').style.display = 'none';
+                document.getElementById('resetUrlContainer').classList.remove('hidden');
+                document.getElementById('setupTitle').innerText = 'Unlock Vault';
+                document.getElementById('setupSubtitle').innerText = 'Enter your private password to unlock your family\'s health data.';
             }
             
             if (savedUrl && savedPwd) {
@@ -570,6 +577,15 @@
                 initApp();
             }
         });
+
+        function resetUrl() {
+            localStorage.removeItem('fh_app_url');
+            document.getElementById('authUrl').value = '';
+            document.getElementById('urlInputContainer').style.display = 'block';
+            document.getElementById('resetUrlContainer').classList.add('hidden');
+            document.getElementById('setupTitle').innerText = 'Secure Vault Setup';
+            document.getElementById('setupSubtitle').innerText = 'Enter your private Google Apps Script credentials to unlock your family\'s health data.';
+        }
 
         function saveCredentials(e) {
             e.preventDefault();
@@ -798,18 +814,29 @@
             };
             
             closeAddMemberModal();
-            toggleLoading(true);
-            try {
-                const res = await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                document.getElementById('newMemberName').value = "";
-                document.getElementById('newMemberBloodType').value = "";
-                document.getElementById('newMemberAllergies').value = "";
-                document.getElementById('newMemberInsurance').value = "";
-                document.getElementById('newMemberPhone').value = "";
-                setTimeout(() => fetchData(), 1500); 
-            } catch (error) {
-                alert("Failed to save member securely."); toggleLoading(false);
-            }
+            
+            healthData.push({
+                Timestamp: payload.timestamp,
+                Date: "",
+                Type: "Member",
+                Family_Member: payload.member,
+                Detail_1: payload.detail1,
+                Detail_2: payload.detail2,
+                Detail_3: payload.detail3,
+                Notes: payload.notes
+            });
+            
+            localStorage.setItem('fh_cached_data', JSON.stringify(healthData));
+            extractFamilyMembers();
+            renderAll();
+
+            fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(e => console.error(e));
+
+            document.getElementById('newMemberName').value = "";
+            document.getElementById('newMemberBloodType').value = "";
+            document.getElementById('newMemberAllergies').value = "";
+            document.getElementById('newMemberInsurance').value = "";
+            document.getElementById('newMemberPhone').value = "";
         }
 
         async function submitRecord(e) {
@@ -827,17 +854,28 @@
                 notes: document.getElementById('notes').value || ""
             };
 
-            toggleLoading(true);
-            try {
-                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                document.getElementById('addRecordForm').reset();
-                document.getElementById('recordDate').valueAsDate = new Date();
-                document.getElementById('futureDateHint').classList.add('hidden');
-                navigate('dashboard');
-                setTimeout(() => fetchData(), 1500); 
-            } catch (error) {
-                alert("Failed to save to Secure Vault."); toggleLoading(false);
-            }
+            healthData.push({
+                Timestamp: payload.timestamp,
+                Date: payload.date,
+                Type: payload.type,
+                Family_Member: payload.member,
+                Detail_1: payload.detail1,
+                Detail_2: payload.detail2,
+                Detail_3: payload.detail3,
+                Report_Link: payload.link,
+                Notes: payload.notes
+            });
+            
+            localStorage.setItem('fh_cached_data', JSON.stringify(healthData));
+            extractFamilyMembers();
+            renderAll();
+
+            fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(e => console.error(e));
+
+            document.getElementById('addRecordForm').reset();
+            document.getElementById('recordDate').valueAsDate = new Date();
+            document.getElementById('futureDateHint').classList.add('hidden');
+            navigate('dashboard');
         }
 
         function renderAll() {
