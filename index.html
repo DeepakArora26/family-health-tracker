@@ -185,7 +185,7 @@
         </div>
 
         <!-- Scrollable Content -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-10 pb-32 md:pb-10 relative" id="mainScrollArea">
+        <div class="flex-1 overflow-y-auto p-4 md:p-10 pb-52 md:pb-10 relative" id="mainScrollArea">
 
             <!-- 1. DASHBOARD PAGE -->
             <div id="page-dashboard" class="page-view active max-w-6xl mx-auto">
@@ -380,6 +380,8 @@
                 </div>
             </div>
             
+            <!-- Mobile Bottom Spacer for Floating Nav Overlap -->
+            <div class="h-40 md:hidden w-full shrink-0"></div>
         </div>
     </div>
 
@@ -1035,12 +1037,61 @@
             const query = document.getElementById('globalSearchInput').value.toLowerCase();
             const container = document.getElementById('searchResultsContainer');
             if (query.length === 0) { container.innerHTML = `<div class="text-center py-20 text-slate-400"><i class="fa-solid fa-keyboard text-4xl mb-4 opacity-50"></i><p class="font-medium">Start typing to search your secure vault.</p></div>`; return; }
-            const results = healthData.filter(r => r.Type !== 'Member' && ( (r.Family_Member && r.Family_Member.toLowerCase().includes(query)) || (r.Detail_1 && r.Detail_1.toLowerCase().includes(query)) || (r.Notes && r.Notes.toLowerCase().includes(query)) ));
+            
+            const results = healthData.filter(r => (
+                (r.Family_Member && r.Family_Member.toLowerCase().includes(query)) || 
+                (r.Detail_1 && r.Detail_1.toLowerCase().includes(query)) || 
+                (r.Notes && r.Notes.toLowerCase().includes(query))
+            ));
+            
             if (results.length === 0) { container.innerHTML = `<div class="text-center py-20 text-slate-400"><i class="fa-solid fa-ghost text-4xl mb-4 opacity-50"></i><p class="font-medium">No records found matching "${query}".</p></div>`; return; }
 
             container.innerHTML = `<h3 class="text-sm font-bold text-brand-500 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Found ${results.length} Record(s)</h3>`;
             const listDiv = document.createElement('div'); listDiv.className = 'space-y-4';
-            results.forEach(row => { if (row.Type === 'Medicine') listDiv.innerHTML += buildMedicineCard(row, true); else listDiv.innerHTML += buildHistoryItem(row, true); });
+            
+            results.forEach(row => { 
+                let iconHtml = '';
+                let title = '';
+                let subtitle = '';
+                let rightText = '';
+                
+                if (row.Type === 'Member') {
+                    iconHtml = `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-lg font-black shadow-inner shrink-0">${getInitials(row.Family_Member)}</div>`;
+                    title = row.Family_Member;
+                    subtitle = "Family Profile";
+                    rightText = '<i class="fa-solid fa-chevron-right text-slate-300"></i>';
+                } else if (row.Type === 'Medicine') {
+                    iconHtml = `<div class="h-12 w-12 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-500 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-pills"></i></div>`;
+                    title = row.Detail_1;
+                    subtitle = row.Family_Member;
+                    const stats = calculateMedicineStats(row);
+                    rightText = `${stats.daysLeft} days`;
+                } else if (row.Type === 'Checkup') {
+                    iconHtml = `<div class="h-12 w-12 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-500 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-user-doctor"></i></div>`;
+                    title = row.Detail_1;
+                    subtitle = row.Family_Member;
+                    rightText = new Date(row.Date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } else if (row.Type === 'Vital') {
+                    iconHtml = `<div class="h-12 w-12 rounded-full bg-rose-50 dark:bg-rose-900/30 text-rose-500 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-heart-pulse"></i></div>`;
+                    title = `${row.Detail_1} <span class="text-rose-500 font-bold ml-1">${row.Detail_2}</span>`;
+                    subtitle = row.Family_Member;
+                    rightText = new Date(row.Date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                }
+
+                listDiv.innerHTML += `
+                    <div class="glass-card p-5 hover:shadow-lg transition-shadow cursor-pointer flex items-center justify-between" onclick="toggleSearch(); openMemberProfile('${row.Family_Member}')">
+                        <div class="flex items-center overflow-hidden">
+                            ${iconHtml}
+                            <div class="ml-4 truncate">
+                                <h4 class="font-extrabold text-slate-900 dark:text-white text-lg truncate">${title}</h4>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate">${subtitle}</p>
+                            </div>
+                        </div>
+                        <div class="ml-3 shrink-0 text-right">
+                            <span class="block text-xs font-bold text-slate-400 uppercase tracking-widest">${rightText}</span>
+                        </div>
+                    </div>`;
+            });
             container.appendChild(listDiv);
         }
 
@@ -1066,4 +1117,4 @@
         }
     </script>
 </body>
-</html>
+</html>l>
