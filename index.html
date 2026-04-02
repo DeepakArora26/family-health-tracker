@@ -46,7 +46,8 @@
             background-image: radial-gradient(at 0% 0%, hsla(253,100%,50%,0.05) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,100%,50%,0.05) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,100%,50%,0.05) 0, transparent 50%);
         }
         
-        .page-view { display: none; animation: fadeIn 0.3s ease-in-out forwards; }
+        .page-view { display: none; animation: fadeIn 0.3s ease-in-out forwards; padding-bottom: 140px; }
+        @media (min-width: 768px) { .page-view { padding-bottom: 0; } }
         .page-view.active { display: block; }
         @keyframes fadeIn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
 
@@ -90,9 +91,7 @@
         @media print {
             body, html { height: auto !important; overflow: visible !important; background: white !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
             .bg-mesh, aside, header, .nav-btn, .fixed, .overlay-modal, .page-view, #mobileFabAdd, #desktopTopBar, .no-print { display: none !important; }
-            
             #printContainer { display: block !important; position: relative !important; width: 100% !important; z-index: 9999; background: white; padding: 0 !important; margin: 0 !important; }
-            
             .print-card { border: 1px solid #ccc !important; box-shadow: none !important; page-break-inside: avoid; break-inside: avoid; margin-bottom: 15px; padding: 15px; border-radius: 8px; width: 100%; display: block; }
             .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
             h1, h2, h3, h4, h5, p, span, div { color: black !important; page-break-inside: avoid; }
@@ -100,10 +99,53 @@
             .print-header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
         }
         @media screen { #printContainer { display: none !important; } }
+
+        /* Setup Screen Lock */
+        #authScreen {
+            display: flex;
+        }
+        #appContent {
+            display: none;
+        }
     </style>
 </head>
-<body class="antialiased h-screen overflow-hidden flex transition-colors duration-300 text-slate-800 dark:text-slate-200">
+<body class="antialiased h-[100dvh] overflow-hidden flex transition-colors duration-300 text-slate-800 dark:text-slate-200">
     <div class="bg-mesh"></div>
+
+    <datalist id="doctorsList"></datalist>
+    <datalist id="medicinesList"></datalist>
+    <datalist id="vitalsList"></datalist>
+
+    <!-- ========================================== -->
+    <!-- SECURE AUTHENTICATION / SETUP SCREEN       -->
+    <!-- ========================================== -->
+    <div id="authScreen" class="fixed inset-0 z-[200] bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-md glass-card p-8 text-center shadow-2xl border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-400 to-accent-500"></div>
+            
+            <div class="h-20 w-20 bg-brand-50 dark:bg-brand-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border-4 border-white dark:border-slate-800">
+                <i class="fa-solid fa-lock text-brand-500 text-3xl"></i>
+            </div>
+            
+            <h1 class="text-3xl font-black text-slate-900 dark:text-white mb-2">Secure Vault Setup</h1>
+            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8">Enter your private Google Apps Script credentials to unlock your family's health data.</p>
+            
+            <form onsubmit="saveCredentials(event)" class="text-left space-y-5">
+                <div>
+                    <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 ml-1">Apps Script Web App URL <span class="text-rose-500">*</span></label>
+                    <input type="url" id="authUrl" required class="input-premium w-full p-4 rounded-xl font-medium text-sm" placeholder="https://script.google.com/macros/s/.../exec">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 ml-1">Vault Password <span class="text-rose-500">*</span></label>
+                    <input type="password" id="authPassword" required class="input-premium w-full p-4 rounded-xl font-bold tracking-widest" placeholder="••••••••">
+                </div>
+                <button type="submit" class="mt-4 w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-lg py-4 rounded-xl shadow-soft hover:scale-[1.02] transition-transform">
+                    Unlock Vault
+                </button>
+            </form>
+            <p id="authError" class="text-rose-500 text-xs font-bold mt-4 hidden"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Incorrect password or invalid URL.</p>
+        </div>
+    </div>
 
     <!-- Hidden Container for Printing Doctor's Report -->
     <div id="printContainer" class="hidden"></div>
@@ -113,304 +155,326 @@
         <div class="relative w-20 h-20 mb-6">
             <div class="absolute inset-0 border-4 border-brand-100 dark:border-brand-900 rounded-full"></div>
             <div class="absolute inset-0 border-4 border-brand-500 rounded-full border-t-transparent animate-spin"></div>
-            <i class="fa-solid fa-heart-pulse absolute inset-0 flex items-center justify-center text-brand-500 text-xl animate-pulse"></i>
+            <i class="fa-solid fa-shield-halved absolute inset-0 flex items-center justify-center text-brand-500 text-xl animate-pulse"></i>
         </div>
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Syncing Data</h2>
+        <h2 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Syncing Securely</h2>
         <p class="text-slate-500 dark:text-slate-400 font-medium mt-2">Connecting to Google Drive...</p>
     </div>
 
     <!-- ========================================== -->
-    <!-- DESKTOP SIDEBAR NAVIGATION                 -->
+    <!-- SECURE APPLICATION CONTENT                 -->
     <!-- ========================================== -->
-    <aside id="desktopSidebar" class="sidebar hidden md:flex flex-col w-72 bg-slate-900 dark:bg-black text-white h-full relative z-40 shadow-2xl shrink-0 border-r border-slate-800">
-        <button onclick="toggleSidebar()" class="absolute -right-4 top-10 bg-slate-800 hover:bg-brand-500 text-white rounded-full h-8 w-8 flex items-center justify-center shadow-lg border border-slate-700 transition-colors z-50">
-            <i id="collapseIcon" class="fa-solid fa-chevron-left text-xs"></i>
-        </button>
+    <div id="appContent" class="w-full h-full flex flex-col md:flex-row">
+        <!-- ========================================== -->
+        <!-- DESKTOP SIDEBAR NAVIGATION                 -->
+        <!-- ========================================== -->
+        <aside id="desktopSidebar" class="sidebar hidden md:flex flex-col w-72 bg-slate-900 dark:bg-black text-white h-full relative z-40 shadow-2xl shrink-0 border-r border-slate-800">
+            <button onclick="toggleSidebar()" class="absolute -right-4 top-10 bg-slate-800 hover:bg-brand-500 text-white rounded-full h-8 w-8 flex items-center justify-center shadow-lg border border-slate-700 transition-colors z-50">
+                <i id="collapseIcon" class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
 
-        <div class="p-6 pt-8">
-            <div class="flex items-center space-x-3 mb-10 overflow-hidden">
-                <div class="h-10 w-10 min-w-[40px] bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-glow shrink-0">
-                    <i class="fa-solid fa-heart-pulse text-white text-xl"></i>
+            <div class="p-6 pt-8">
+                <div class="flex items-center space-x-3 mb-10 overflow-hidden">
+                    <div class="h-10 w-10 min-w-[40px] bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-glow shrink-0">
+                        <i class="fa-solid fa-heart-pulse text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-black tracking-tight text-white hide-on-collapse">Health<span class="text-brand-400">Hub</span></h1>
                 </div>
-                <h1 class="text-2xl font-black tracking-tight text-white hide-on-collapse">Health<span class="text-brand-400">Hub</span></h1>
+
+                <nav class="space-y-3">
+                    <button onclick="navigate('dashboard')" id="side-nav-dashboard" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold transition-all" title="Dashboard">
+                        <i class="fa-solid fa-layer-group w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Dashboard</span>
+                    </button>
+                    <button onclick="navigate('family')" id="side-nav-family" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all" title="Family Profiles">
+                        <i class="fa-solid fa-users w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Family Profiles</span>
+                    </button>
+                    <button onclick="navigate('medicines')" id="side-nav-medicines" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all" title="Medicines Cabinet">
+                        <i class="fa-solid fa-box-archive w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Medicines Cabinet</span>
+                    </button>
+                    <button onclick="navigate('reports')" id="side-nav-reports" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all" title="Reports & Vitals">
+                        <i class="fa-solid fa-file-medical w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Reports & Vitals</span>
+                    </button>
+                </nav>
             </div>
 
-            <nav class="space-y-3">
-                <button onclick="navigate('dashboard')" id="side-nav-dashboard" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold transition-all" title="Dashboard">
-                    <i class="fa-solid fa-layer-group w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Dashboard</span>
+            <div class="mt-auto p-6 pb-8 space-y-3">
+                <!-- Logout Button -->
+                <button onclick="logoutVault()" class="w-full bg-slate-800 text-rose-400 hover:text-white hover:bg-rose-600 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center space-x-2 side-nav-btn" title="Lock Vault">
+                    <i class="fa-solid fa-lock shrink-0"></i><span class="hide-on-collapse">Lock Vault</span>
                 </button>
-                <button onclick="navigate('family')" id="side-nav-family" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all" title="Family Profiles">
-                    <i class="fa-solid fa-users w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Family Profiles</span>
+                <button onclick="navigate('add')" id="side-nav-add" class="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-black py-3.5 rounded-xl shadow-glow-green hover:scale-[1.02] transition-all flex items-center justify-center space-x-2 side-nav-btn" title="Add Record">
+                    <i class="fa-solid fa-plus shrink-0 text-xl"></i><span class="hide-on-collapse">Add Record</span>
                 </button>
-                <button onclick="navigate('medicines')" id="side-nav-medicines" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all" title="Medicines Cabinet">
-                    <i class="fa-solid fa-box-archive w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Medicines Cabinet</span>
+            </div>
+        </aside>
+
+        <!-- ========================================== -->
+        <!-- MAIN CONTENT AREA                          -->
+        <!-- ========================================== -->
+        <div class="flex-1 flex flex-col h-full relative overflow-hidden bg-transparent">
+            
+            <!-- Mobile Top Header -->
+            <header class="md:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-6 py-4 flex justify-between items-center shadow-sm z-30 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <div class="h-8 w-8 bg-gradient-to-br from-brand-400 to-brand-600 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-heart-pulse text-white text-sm"></i>
+                    </div>
+                    <h1 class="text-xl font-black tracking-tight text-slate-900 dark:text-white">Health<span class="text-brand-500">Hub</span></h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="logoutVault()" class="h-10 w-10 rounded-full flex items-center justify-center text-rose-500 dark:text-rose-400 active:scale-95"><i class="fa-solid fa-lock"></i></button>
+                    <button onclick="toggleSearch()" class="h-10 w-10 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <button onclick="toggleDarkMode()" class="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-moon dark:hidden"></i><i class="fa-solid fa-sun hidden dark:block text-amber-400"></i></button>
+                </div>
+            </header>
+
+            <!-- Desktop Top Bar -->
+            <div id="desktopTopBar" class="hidden md:flex absolute top-6 right-10 space-x-4 z-50">
+                <button onclick="toggleSearch()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors"><i class="fa-solid fa-magnifying-glass"></i></button>
+                <button onclick="fetchData()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
+                <button onclick="toggleDarkMode()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-amber-500 transition-colors"><i class="fa-solid fa-moon dark:hidden"></i><i class="fa-solid fa-sun hidden dark:block text-amber-400"></i></button>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-10 pb-52 md:pb-10 relative" id="mainScrollArea">
+
+                <!-- 1. DASHBOARD PAGE -->
+                <div id="page-dashboard" class="page-view active max-w-6xl mx-auto">
+                    <div class="mb-10 pt-4 md:pt-0">
+                        <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Overview</p>
+                        <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white" id="greetingText">Good Morning!</h2>
+                        <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg" id="statusSubtitle">Loading your family's health overview...</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                        <div class="glass-card p-6 flex items-center cursor-pointer hover:scale-[1.02]" onclick="navigate('family')">
+                            <div class="h-14 w-14 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center text-2xl mr-4"><i class="fa-solid fa-users"></i></div>
+                            <div><p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Family Members</p><p class="text-2xl font-extrabold text-slate-800 dark:text-white" id="statFamily">0</p></div>
+                        </div>
+                        <div class="glass-card p-6 flex items-center cursor-pointer hover:scale-[1.02]" onclick="navigate('medicines')">
+                            <div class="h-14 w-14 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mr-4"><i class="fa-solid fa-pills"></i></div>
+                            <div><p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Active Medicines</p><p class="text-2xl font-extrabold text-slate-800 dark:text-white" id="statMeds">0</p></div>
+                        </div>
+                        <div class="glass-card p-6 flex items-center cursor-pointer hover:scale-[1.02]" onclick="navigate('reports')">
+                            <div class="h-14 w-14 rounded-full bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 flex items-center justify-center text-2xl mr-4"><i class="fa-solid fa-file-medical"></i></div>
+                            <div><p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Records</p><p class="text-2xl font-extrabold text-slate-800 dark:text-white" id="statRecords">0</p></div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Appointments Section -->
+                    <section class="mb-10" id="upcomingSection" style="display: none;">
+                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-4 flex items-center">
+                            <i class="fa-regular fa-calendar-check text-brand-500 mr-2"></i> Upcoming Appointments
+                        </h3>
+                        <div id="dashboardUpcoming" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </section>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <section>
+                            <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5 flex items-center">
+                                Attention Needed
+                                <span id="alertBadge" class="ml-3 bg-rose-500 text-white text-xs px-2.5 py-0.5 rounded-full hidden">0</span>
+                            </h3>
+                            <div id="dashboardAlerts" class="space-y-4"></div>
+                        </section>
+                        <section>
+                            <div class="flex justify-between items-end mb-5">
+                                <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Recent Logs</h3>
+                                <button onclick="navigate('reports')" class="text-brand-500 text-sm font-bold hover:underline">View All</button>
+                            </div>
+                            <div id="dashboardActivity" class="space-y-4"></div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- 2. FAMILY MEMBERS PAGE -->
+                <div id="page-family" class="page-view max-w-6xl mx-auto">
+                    <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pt-4 md:pt-0">
+                        <div>
+                            <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Profiles</p>
+                            <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Family Members</h2>
+                            <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">Manage your family profiles & medical info.</p>
+                        </div>
+                        <button onclick="openAddMemberModal()" class="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-5 py-2.5 rounded-xl font-bold hover:scale-105 transition-all shadow-glow-green flex items-center shrink-0">
+                            <i class="fa-solid fa-user-plus mr-2"></i>Add Member
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" id="familyGridContainer"></div>
+                </div>
+
+                <!-- 3. INDIVIDUAL MEMBER PROFILE PAGE -->
+                <div id="page-member-detail" class="page-view max-w-5xl mx-auto">
+                    <button onclick="navigate('family')" class="mb-6 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold transition-colors pt-4 md:pt-0">
+                        <i class="fa-solid fa-arrow-left mr-2"></i> Back to Profiles
+                    </button>
+                    
+                    <div class="glass-card p-8 mb-8 flex flex-col md:flex-row items-center md:justify-between text-center md:text-left gap-6 relative overflow-hidden">
+                        <div class="absolute top-4 right-4 md:top-6 md:right-6 flex flex-col gap-2">
+                            <button onclick="printDoctorReport()" class="bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-400 px-4 py-2 rounded-lg font-bold text-sm hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <i class="fa-solid fa-print mr-2"></i> Print for Doctor
+                            </button>
+                            <button onclick="generateLockScreen()" class="bg-rose-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-rose-600 transition-colors flex items-center justify-center shadow-md shadow-rose-500/20">
+                                <i class="fa-solid fa-mobile-screen mr-2"></i> Medical ID Image
+                            </button>
+                        </div>
+
+                        <div class="flex flex-col md:flex-row items-center gap-6 pt-12 md:pt-0">
+                            <div id="profileAvatar" class="h-24 w-24 rounded-full text-white flex items-center justify-center text-4xl font-black shadow-inner border-4 border-white dark:border-slate-800 shadow-soft shrink-0"></div>
+                            <div>
+                                <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white" id="profileName">Name</h2>
+                                <p class="text-brand-500 font-bold mt-1 tracking-widest uppercase text-sm" id="profileStats">0 Meds • 0 Records</p>
+                                <div class="flex flex-wrap justify-center md:justify-start gap-2 mt-3" id="profileEmergencyInfo"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-10" id="profileVitalsSection">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3">
+                            <h3 class="text-xl font-extrabold text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line mr-2 text-rose-400"></i>Vitals Progress</h3>
+                            <select id="chartTestSelector" onchange="updateChart()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:border-brand-500 shadow-sm hidden"></select>
+                        </div>
+                        <div id="chartContainerWrapper" class="glass-card p-6 hidden">
+                            <div class="relative h-64 w-full"><canvas id="vitalsChart"></canvas></div>
+                        </div>
+                        <div id="noVitalsMsg" class="glass-card p-8 text-center text-slate-400 dark:text-slate-500 font-medium hidden">No test or vital records logged for this member.</div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <div class="space-y-10">
+                            <div>
+                                <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5"><i class="fa-solid fa-pills mr-2 text-brand-500"></i>Active Medicines</h3>
+                                <div id="profileMedsContainer" class="space-y-4"></div>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5"><i class="fa-solid fa-shield-halved mr-2 text-accent-500"></i>Insurance Policies</h3>
+                                <div id="profileInsuranceContainer" class="space-y-4"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5"><i class="fa-solid fa-timeline mr-2 text-rose-400"></i>Medical History</h3>
+                            <div id="profileHistoryContainer" class="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. MEDICINES PAGE -->
+                <div id="page-medicines" class="page-view max-w-6xl mx-auto">
+                    <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pt-4 md:pt-0">
+                        <div>
+                            <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Inventory</p>
+                            <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Medicines Cabinet</h2>
+                            <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">All active prescriptions across the family.</p>
+                        </div>
+                        <button onclick="navigate('add', 'Medicine')" class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-2.5 rounded-xl font-bold hover:opacity-90 transition-colors shadow-soft flex items-center shrink-0">
+                            <i class="fa-solid fa-plus mr-2"></i>Add Medicine
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="allMedicinesContainer"></div>
+                </div>
+
+                <!-- 5. REPORTS & VITALS PAGE -->
+                <div id="page-reports" class="page-view max-w-6xl mx-auto">
+                    <div class="mb-8 pt-4 md:pt-0">
+                        <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Logs</p>
+                        <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Reports & Vitals</h2>
+                        <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg mb-6">Complete chronological history of all visits, tests, and documents.</p>
+                        <div class="flex items-center space-x-3 overflow-x-auto pb-2 scroll-snap-x" id="reportFilterContainer"></div>
+                    </div>
+                    
+                    <div class="max-w-3xl glass-card p-6 md:p-8 mx-auto md:mx-0">
+                        <div id="allReportsContainer" class="space-y-6 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-brand-200 before:via-slate-200 dark:before:via-slate-700 before:to-transparent"></div>
+                    </div>
+                </div>
+
+                <!-- 6. ADD RECORD PAGE -->
+                <div id="page-add" class="page-view max-w-2xl mx-auto">
+                    <div class="mb-10 pt-4 md:pt-0">
+                        <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Add New Record</h2>
+                        <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">Log a visit, update a prescription, or track a vital sign.</p>
+                    </div>
+                    
+                    <div class="glass-card p-6 md:p-10">
+                        <div class="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl flex mb-10 relative shadow-inner">
+                            <div id="toggleBg" class="absolute top-1.5 bottom-1.5 left-1.5 w-[calc(25%-4.5px)] bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 transition-all duration-300 ease-out"></div>
+                            
+                            <button onclick="selectRecordType('Checkup')" id="btn-type-Checkup" class="type-btn active relative w-1/4 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
+                                <i class="fa-solid fa-stethoscope mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Visit</span>
+                            </button>
+                            <button onclick="selectRecordType('Medicine')" id="btn-type-Medicine" class="type-btn inactive relative w-1/4 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
+                                <i class="fa-solid fa-pills mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Medicine</span>
+                            </button>
+                            <button onclick="selectRecordType('Vital')" id="btn-type-Vital" class="type-btn inactive relative w-1/4 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
+                                <i class="fa-solid fa-heart-pulse mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Vitals</span>
+                            </button>
+                            <button onclick="selectRecordType('Insurance')" id="btn-type-Insurance" class="type-btn inactive relative w-1/4 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
+                                <i class="fa-solid fa-shield-halved mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Insure</span>
+                            </button>
+                        </div>
+
+                        <form id="addRecordForm" onsubmit="submitRecord(event)">
+                            <input type="hidden" id="recordType" value="Checkup">
+                            
+                            <div class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Family Member <span class="text-rose-500">*</span></label>
+                                        <select id="memberName" required class="input-premium w-full p-4 rounded-2xl font-semibold appearance-none cursor-pointer">
+                                            <option value="" disabled selected>Select member...</option>
+                                        </select>
+                                        <p class="text-[10px] text-slate-400 mt-1 ml-1">Don't see them? <a href="#" onclick="openAddMemberModal(); return false;" class="text-brand-500 hover:underline">Add Member</a></p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Date <span class="text-rose-500">*</span></label>
+                                        <input type="date" id="recordDate" required class="input-premium w-full p-4 rounded-2xl font-semibold">
+                                        <p class="text-[10px] text-brand-500 mt-1 ml-1 hidden" id="futureDateHint">Future date selected. Marked as upcoming appointment!</p>
+                                    </div>
+                                </div>
+
+                                <div id="dynamicFields" class="space-y-6 bg-brand-50/50 dark:bg-brand-900/10 p-6 rounded-[1.5rem] border border-brand-100/50 dark:border-brand-900/30 transition-colors duration-300"></div>
+
+                                <div>
+                                    <label class="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Notes</label>
+                                    <textarea id="notes" rows="3" class="input-premium w-full p-4 rounded-2xl font-medium resize-none leading-relaxed" placeholder="Add instructions, side effects, or diagnosis..."></textarea>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="mt-10 w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-extrabold text-lg py-4 rounded-2xl shadow-glow-green hover:scale-[1.02] transition-all flex items-center justify-center">
+                                <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Save to Secure Vault
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MOBILE QUICK ADD FAB                       -->
+        <!-- ========================================== -->
+        <button onclick="navigate('add')" id="mobileFabAdd" class="md:hidden fixed bottom-28 right-6 h-14 w-14 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center text-white text-2xl z-40 transition-transform active:scale-90">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+
+        <!-- ========================================== -->
+        <!-- MOBILE FLOATING NAVIGATION (HIDDEN ON MD)  -->
+        <!-- ========================================== -->
+        <div class="md:hidden fixed bottom-6 left-0 right-0 px-4 z-50 pointer-events-none">
+            <nav class="bg-slate-900 dark:bg-black shadow-2xl rounded-full flex justify-between p-2 pointer-events-auto border border-slate-800 backdrop-blur-xl">
+                <button onclick="navigate('dashboard')" id="mob-nav-dashboard" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-brand-400 transition-all">
+                    <i class="fa-solid fa-layer-group text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Home</span>
                 </button>
-                <button onclick="navigate('reports')" id="side-nav-reports" class="side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all" title="Reports & Vitals">
-                    <i class="fa-solid fa-file-medical w-6 text-center text-lg shrink-0"></i><span class="hide-on-collapse">Reports & Vitals</span>
+                <button onclick="navigate('family')" id="mob-nav-family" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-slate-500 hover:text-white transition-all">
+                    <i class="fa-solid fa-users text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Family</span>
+                </button>
+                <button onclick="navigate('medicines')" id="mob-nav-medicines" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-slate-500 hover:text-white transition-all">
+                    <i class="fa-solid fa-pills text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Meds</span>
+                </button>
+                <button onclick="navigate('reports')" id="mob-nav-reports" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-slate-500 hover:text-white transition-all">
+                    <i class="fa-solid fa-file-medical text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Logs</span>
                 </button>
             </nav>
         </div>
-
-        <div class="mt-auto p-6 pb-8 space-y-3">
-            <button onclick="navigate('add')" class="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-black py-3.5 rounded-xl shadow-glow-green hover:scale-[1.02] transition-all flex items-center justify-center space-x-2 side-nav-btn" title="Add Record">
-                <i class="fa-solid fa-plus shrink-0 text-xl"></i><span class="hide-on-collapse">Add Record</span>
-            </button>
-        </div>
-    </aside>
-
-    <!-- ========================================== -->
-    <!-- MAIN CONTENT AREA                          -->
-    <!-- ========================================== -->
-    <div class="flex-1 flex flex-col h-full relative overflow-hidden bg-transparent">
-        
-        <!-- Mobile Top Header -->
-        <header class="md:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-6 py-4 flex justify-between items-center shadow-sm z-30 border-b border-slate-100 dark:border-slate-800">
-            <div class="flex items-center space-x-2">
-                <div class="h-8 w-8 bg-gradient-to-br from-brand-400 to-brand-600 rounded-lg flex items-center justify-center">
-                    <i class="fa-solid fa-heart-pulse text-white text-sm"></i>
-                </div>
-                <h1 class="text-xl font-black tracking-tight text-slate-900 dark:text-white">Health<span class="text-brand-500">Hub</span></h1>
-            </div>
-            <div class="flex items-center space-x-3">
-                <button onclick="toggleSearch()" class="h-10 w-10 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-magnifying-glass"></i></button>
-                <button onclick="toggleDarkMode()" class="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95"><i class="fa-solid fa-moon dark:hidden"></i><i class="fa-solid fa-sun hidden dark:block text-amber-400"></i></button>
-            </div>
-        </header>
-
-        <!-- Desktop Top Bar -->
-        <div id="desktopTopBar" class="hidden md:flex absolute top-6 right-10 space-x-4 z-50">
-            <button onclick="toggleSearch()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors"><i class="fa-solid fa-magnifying-glass"></i></button>
-            <button onclick="fetchData()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
-            <button onclick="toggleDarkMode()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-amber-500 transition-colors"><i class="fa-solid fa-moon dark:hidden"></i><i class="fa-solid fa-sun hidden dark:block text-amber-400"></i></button>
-        </div>
-
-        <!-- Scrollable Content -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-10 pb-52 md:pb-10 relative" id="mainScrollArea">
-
-            <!-- 1. DASHBOARD PAGE -->
-            <div id="page-dashboard" class="page-view active max-w-6xl mx-auto">
-                <div class="mb-10 pt-4 md:pt-0">
-                    <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Overview</p>
-                    <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white" id="greetingText">Good Morning!</h2>
-                    <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg" id="statusSubtitle">Loading your family's health overview...</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                    <div class="glass-card p-6 flex items-center cursor-pointer hover:scale-[1.02]" onclick="navigate('family')">
-                        <div class="h-14 w-14 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center text-2xl mr-4"><i class="fa-solid fa-users"></i></div>
-                        <div><p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Family Members</p><p class="text-2xl font-extrabold text-slate-800 dark:text-white" id="statFamily">0</p></div>
-                    </div>
-                    <div class="glass-card p-6 flex items-center cursor-pointer hover:scale-[1.02]" onclick="navigate('medicines')">
-                        <div class="h-14 w-14 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mr-4"><i class="fa-solid fa-pills"></i></div>
-                        <div><p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Active Medicines</p><p class="text-2xl font-extrabold text-slate-800 dark:text-white" id="statMeds">0</p></div>
-                    </div>
-                    <div class="glass-card p-6 flex items-center cursor-pointer hover:scale-[1.02]" onclick="navigate('reports')">
-                        <div class="h-14 w-14 rounded-full bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 flex items-center justify-center text-2xl mr-4"><i class="fa-solid fa-file-medical"></i></div>
-                        <div><p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Records</p><p class="text-2xl font-extrabold text-slate-800 dark:text-white" id="statRecords">0</p></div>
-                    </div>
-                </div>
-
-                <!-- Upcoming Appointments Section -->
-                <section class="mb-10" id="upcomingSection" style="display: none;">
-                    <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-4 flex items-center">
-                        <i class="fa-regular fa-calendar-check text-brand-500 mr-2"></i> Upcoming Appointments
-                    </h3>
-                    <div id="dashboardUpcoming" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                </section>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    <section>
-                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5 flex items-center">
-                            Attention Needed
-                            <span id="alertBadge" class="ml-3 bg-rose-500 text-white text-xs px-2.5 py-0.5 rounded-full hidden">0</span>
-                        </h3>
-                        <div id="dashboardAlerts" class="space-y-4"></div>
-                    </section>
-                    <section>
-                        <div class="flex justify-between items-end mb-5">
-                            <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Recent Logs</h3>
-                            <button onclick="navigate('reports')" class="text-brand-500 text-sm font-bold hover:underline">View All</button>
-                        </div>
-                        <div id="dashboardActivity" class="space-y-4"></div>
-                    </section>
-                </div>
-            </div>
-
-            <!-- 2. FAMILY MEMBERS PAGE -->
-            <div id="page-family" class="page-view max-w-6xl mx-auto">
-                <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pt-4 md:pt-0">
-                    <div>
-                        <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Profiles</p>
-                        <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Family Members</h2>
-                        <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">Manage your family profiles & medical info.</p>
-                    </div>
-                    <button onclick="openAddMemberModal()" class="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-5 py-2.5 rounded-xl font-bold hover:scale-105 transition-all shadow-glow-green flex items-center shrink-0">
-                        <i class="fa-solid fa-user-plus mr-2"></i>Add Member
-                    </button>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" id="familyGridContainer"></div>
-            </div>
-
-            <!-- 3. INDIVIDUAL MEMBER PROFILE PAGE -->
-            <div id="page-member-detail" class="page-view max-w-5xl mx-auto">
-                <button onclick="navigate('family')" class="mb-6 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold transition-colors pt-4 md:pt-0">
-                    <i class="fa-solid fa-arrow-left mr-2"></i> Back to Profiles
-                </button>
-                
-                <div class="glass-card p-8 mb-8 flex flex-col md:flex-row items-center md:justify-between text-center md:text-left gap-6 relative overflow-hidden">
-                    <button onclick="printDoctorReport()" class="absolute top-4 right-4 md:top-6 md:right-6 bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-400 px-4 py-2 rounded-lg font-bold text-sm hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors flex items-center border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <i class="fa-solid fa-print mr-2"></i> Print for Doctor
-                    </button>
-
-                    <div class="flex flex-col md:flex-row items-center gap-6 pt-8 md:pt-0">
-                        <div id="profileAvatar" class="h-24 w-24 rounded-full text-white flex items-center justify-center text-4xl font-black shadow-inner border-4 border-white dark:border-slate-800 shadow-soft shrink-0"></div>
-                        <div>
-                            <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white" id="profileName">Name</h2>
-                            <p class="text-brand-500 font-bold mt-1 tracking-widest uppercase text-sm" id="profileStats">0 Meds • 0 Records</p>
-                            <div class="flex flex-wrap justify-center md:justify-start gap-2 mt-3" id="profileEmergencyInfo"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-10" id="profileVitalsSection">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3">
-                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line mr-2 text-rose-400"></i>Vitals Progress</h3>
-                        <select id="chartTestSelector" onchange="updateChart()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg px-3 py-2 outline-none focus:border-brand-500 shadow-sm hidden"></select>
-                    </div>
-                    <div id="chartContainerWrapper" class="glass-card p-6 hidden">
-                        <div class="relative h-64 w-full"><canvas id="vitalsChart"></canvas></div>
-                    </div>
-                    <div id="noVitalsMsg" class="glass-card p-8 text-center text-slate-400 dark:text-slate-500 font-medium hidden">No test or vital records logged for this member.</div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    <div>
-                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5"><i class="fa-solid fa-pills mr-2 text-brand-500"></i>Active Medicines</h3>
-                        <div id="profileMedsContainer" class="space-y-4"></div>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-5"><i class="fa-solid fa-timeline mr-2 text-accent-500"></i>Medical History</h3>
-                        <div id="profileHistoryContainer" class="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. MEDICINES PAGE -->
-            <div id="page-medicines" class="page-view max-w-6xl mx-auto">
-                <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pt-4 md:pt-0">
-                    <div>
-                        <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Inventory</p>
-                        <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Medicines Cabinet</h2>
-                        <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">All active prescriptions across the family.</p>
-                    </div>
-                    <button onclick="navigate('add', 'Medicine')" class="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-5 py-2.5 rounded-xl font-bold hover:scale-105 transition-all shadow-glow-green flex items-center shrink-0">
-                        <i class="fa-solid fa-plus mr-2"></i>Add Medicine
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="allMedicinesContainer"></div>
-            </div>
-
-            <!-- 5. REPORTS & VITALS PAGE -->
-            <div id="page-reports" class="page-view max-w-6xl mx-auto">
-                <div class="mb-8 pt-4 md:pt-0">
-                    <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Logs</p>
-                    <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Reports & Vitals</h2>
-                    <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg mb-6">Complete chronological history of all visits, tests, and documents.</p>
-                    <div class="flex items-center space-x-3 overflow-x-auto pb-2 scroll-snap-x" id="reportFilterContainer"></div>
-                </div>
-                
-                <div class="max-w-3xl glass-card p-6 md:p-8 mx-auto md:mx-0">
-                    <div id="allReportsContainer" class="space-y-6 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-brand-200 before:via-slate-200 dark:before:via-slate-700 before:to-transparent"></div>
-                </div>
-            </div>
-
-            <!-- 6. ADD RECORD PAGE -->
-            <div id="page-add" class="page-view max-w-2xl mx-auto">
-                <div class="mb-10 pt-4 md:pt-0">
-                    <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Add New Record</h2>
-                    <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">Log a visit, update a prescription, or track a vital sign.</p>
-                </div>
-                
-                <div class="glass-card p-6 md:p-10">
-                    <div class="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl flex mb-10 relative shadow-inner">
-                        <div id="toggleBg" class="absolute top-1.5 bottom-1.5 left-1.5 w-[calc(33.33%-4px)] bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 transition-all duration-300 ease-out"></div>
-                        
-                        <button onclick="selectRecordType('Checkup')" id="btn-type-Checkup" class="type-btn active relative w-1/3 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
-                            <i class="fa-solid fa-stethoscope mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Visit</span>
-                        </button>
-                        <button onclick="selectRecordType('Medicine')" id="btn-type-Medicine" class="type-btn inactive relative w-1/3 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
-                            <i class="fa-solid fa-pills mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Medicine</span>
-                        </button>
-                        <button onclick="selectRecordType('Vital')" id="btn-type-Vital" class="type-btn inactive relative w-1/3 py-3.5 text-sm z-10 flex flex-col items-center justify-center">
-                            <i class="fa-solid fa-heart-pulse mb-1.5 text-lg"></i><span class="text-xs uppercase tracking-wider">Vitals</span>
-                        </button>
-                    </div>
-
-                    <form id="addRecordForm" onsubmit="submitRecord(event)">
-                        <input type="hidden" id="recordType" value="Checkup">
-                        
-                        <div class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Family Member <span class="text-rose-500">*</span></label>
-                                    <select id="memberName" required class="input-premium w-full p-4 rounded-2xl font-semibold appearance-none cursor-pointer">
-                                        <option value="" disabled selected>Select member...</option>
-                                    </select>
-                                    <p class="text-[10px] text-slate-400 mt-1 ml-1">Don't see them? <a href="#" onclick="openAddMemberModal(); return false;" class="text-brand-500 hover:underline">Add Member</a></p>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Date <span class="text-rose-500">*</span></label>
-                                    <input type="date" id="recordDate" required class="input-premium w-full p-4 rounded-2xl font-semibold">
-                                    <p class="text-[10px] text-brand-500 mt-1 ml-1 hidden" id="futureDateHint">Future date selected. This will be marked as an upcoming appointment!</p>
-                                </div>
-                            </div>
-
-                            <div id="dynamicFields" class="space-y-6 bg-brand-50/50 dark:bg-brand-900/10 p-6 rounded-[1.5rem] border border-brand-100/50 dark:border-brand-900/30 transition-colors duration-300"></div>
-
-                            <div>
-                                <label class="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Notes</label>
-                                <textarea id="notes" rows="3" class="input-premium w-full p-4 rounded-2xl font-medium resize-none leading-relaxed" placeholder="Add instructions, side effects, or diagnosis..."></textarea>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="mt-10 w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-extrabold text-lg py-4 rounded-2xl shadow-glow-green hover:scale-[1.02] transition-all flex items-center justify-center">
-                            <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Save to Google Drive
-                        </button>
-                    </form>
-                </div>
-            </div>
-            
-            <!-- Mobile Bottom Spacer for Floating Nav Overlap -->
-            <div class="h-40 md:hidden w-full shrink-0"></div>
-        </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- MOBILE QUICK ADD FAB                       -->
-    <!-- ========================================== -->
-    <button onclick="navigate('add')" id="mobileFabAdd" class="md:hidden fixed bottom-28 right-6 h-14 w-14 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center text-white text-2xl z-40 transition-transform active:scale-90">
-        <i class="fa-solid fa-plus"></i>
-    </button>
-
-    <!-- ========================================== -->
-    <!-- MOBILE FLOATING NAVIGATION (HIDDEN ON MD)  -->
-    <!-- ========================================== -->
-    <div class="md:hidden fixed bottom-6 left-0 right-0 px-4 z-50 pointer-events-none">
-        <nav class="bg-slate-900 dark:bg-black shadow-2xl rounded-full flex justify-between p-2 pointer-events-auto border border-slate-800 backdrop-blur-xl">
-            <button onclick="navigate('dashboard')" id="mob-nav-dashboard" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-brand-400 transition-all">
-                <i class="fa-solid fa-layer-group text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Home</span>
-            </button>
-            <button onclick="navigate('family')" id="mob-nav-family" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-slate-500 hover:text-white transition-all">
-                <i class="fa-solid fa-users text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Family</span>
-            </button>
-            <button onclick="navigate('medicines')" id="mob-nav-medicines" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-slate-500 hover:text-white transition-all">
-                <i class="fa-solid fa-pills text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Meds</span>
-            </button>
-            <button onclick="navigate('reports')" id="mob-nav-reports" class="mob-nav-btn relative flex-1 flex flex-col items-center justify-center py-2 rounded-full text-slate-500 hover:text-white transition-all">
-                <i class="fa-solid fa-file-medical text-xl mb-1 z-10"></i><span class="text-[9px] font-extrabold tracking-widest uppercase z-10">Logs</span>
-            </button>
-        </nav>
-    </div>
+    </div> <!-- END APP CONTENT -->
 
     <!-- ========================================== -->
     <!-- OVERLAYS & MODALS                          -->
@@ -436,9 +500,17 @@
                         <option value="O+">O+</option><option value="O-">O-</option>
                     </select>
                 </div>
-                <div class="mb-8">
+                <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Allergies (Optional)</label>
                     <input type="text" id="newMemberAllergies" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. Penicillin, Peanuts">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Insurance / Policy No. (Optional)</label>
+                    <input type="text" id="newMemberInsurance" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. BlueCross - #123456">
+                </div>
+                <div class="mb-8">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Primary Dr. Phone (Optional)</label>
+                    <input type="tel" id="newMemberPhone" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. 555-0199">
                 </div>
                 <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-4 rounded-2xl hover:scale-[1.02] shadow-glow-green transition-all flex justify-center items-center"><i class="fa-solid fa-user-plus mr-2"></i> Save Profile</button>
             </form>
@@ -464,8 +536,9 @@
     <!-- JAVASCRIPT LOGIC                           -->
     <!-- ========================================== -->
     <script>
-        const APPS_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
-
+        // GLOBALS
+        let APPS_SCRIPT_URL = "";
+        let USER_PWD = "";
         let healthData = [];
         let activeChart = null; 
         let currentProfileData = []; 
@@ -476,7 +549,52 @@
         function getAvatarClass(name) { return ['avatar-grad-1', 'avatar-grad-2', 'avatar-grad-3', 'avatar-grad-4'][(name.charCodeAt(0) || 0) % 4]; }
         function getInitials(name) { return name ? name.substring(0, 2).toUpperCase() : '??'; }
 
+        // ==========================================
+        // AUTHENTICATION LOGIC
+        // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+            
+            const savedUrl = localStorage.getItem('fh_app_url');
+            const savedPwd = localStorage.getItem('fh_app_pwd');
+            
+            if (savedUrl && savedPwd) {
+                APPS_SCRIPT_URL = savedUrl;
+                USER_PWD = savedPwd;
+                document.getElementById('authScreen').style.display = 'none';
+                document.getElementById('appContent').style.display = 'flex';
+                initApp();
+            }
+        });
+
+        function saveCredentials(e) {
+            e.preventDefault();
+            const url = document.getElementById('authUrl').value.trim();
+            const pwd = document.getElementById('authPassword').value.trim();
+            
+            if(!url || !pwd) return;
+
+            localStorage.setItem('fh_app_url', url);
+            localStorage.setItem('fh_app_pwd', pwd);
+            
+            APPS_SCRIPT_URL = url;
+            USER_PWD = pwd;
+
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('appContent').style.display = 'flex';
+            initApp();
+        }
+
+        function logoutVault() {
+            localStorage.removeItem('fh_app_url');
+            localStorage.removeItem('fh_app_pwd');
+            window.location.reload();
+        }
+
+        // ==========================================
+        // APP INITIALIZATION
+        // ==========================================
+        function initApp() {
             const dInput = document.getElementById('recordDate');
             dInput.valueAsDate = new Date();
             dInput.addEventListener('change', () => {
@@ -490,13 +608,9 @@
             if (hour < 12) greeting = "Good Morning!"; else if (hour < 18) greeting = "Good Afternoon!";
             document.getElementById('greetingText').innerText = greeting;
 
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
-
             selectRecordType('Checkup');
-
-            if (APPS_SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") loadDemoData();
-            else fetchData();
-        });
+            fetchData();
+        }
 
         function toggleDarkMode() { document.documentElement.classList.toggle('dark'); if(activeChart) updateChart(); }
 
@@ -512,9 +626,13 @@
             document.getElementById('page-' + pageId).classList.add('active');
             document.getElementById('mainScrollArea').scrollTo({ top: 0, behavior: 'smooth' });
 
-            document.querySelectorAll('.side-nav-btn').forEach(el => el.className = "side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all");
+            document.querySelectorAll('.side-nav-btn').forEach(el => {
+                if (el.id !== 'side-nav-add') {
+                    el.className = "side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition-all";
+                }
+            });
             const activeSide = document.getElementById('side-nav-' + pageId);
-            if (activeSide) activeSide.className = "side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold transition-all";
+            if (activeSide && pageId !== 'add') activeSide.className = "side-nav-btn w-full flex items-center space-x-4 px-4 py-3 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold transition-all";
 
             if (['dashboard', 'family', 'add', 'medicines', 'reports'].includes(pageId)) {
                 document.querySelectorAll('.mob-nav-btn').forEach(el => { el.classList.remove('text-brand-400'); el.classList.add('text-slate-500'); });
@@ -529,7 +647,7 @@
         function selectRecordType(type) {
             document.getElementById('recordType').value = type;
             const bg = document.getElementById('toggleBg');
-            const btns = { 'Checkup': document.getElementById('btn-type-Checkup'), 'Medicine': document.getElementById('btn-type-Medicine'), 'Vital': document.getElementById('btn-type-Vital') };
+            const btns = { 'Checkup': document.getElementById('btn-type-Checkup'), 'Medicine': document.getElementById('btn-type-Medicine'), 'Vital': document.getElementById('btn-type-Vital'), 'Insurance': document.getElementById('btn-type-Insurance') };
 
             Object.values(btns).forEach(btn => { btn.classList.remove('active'); btn.classList.add('inactive'); });
             btns[type].classList.remove('inactive'); btns[type].classList.add('active');
@@ -564,6 +682,17 @@
                     </div>
                     <div><label class="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2 ml-1">Drive Report Link (Optional)</label><div class="relative"><div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fa-brands fa-google-drive text-slate-400 text-lg"></i></div><input type="url" id="reportLink" class="input-premium w-full p-4 pl-12 rounded-2xl font-medium placeholder:text-slate-400" placeholder="Paste link here..."></div></div>
                 `;
+            } else if (type === 'Insurance') {
+                bg.style.transform = 'translateX(300%)';
+                df.className = "space-y-6 bg-accent-50/50 dark:bg-accent-900/10 p-6 rounded-[1.5rem] border border-accent-100/50 dark:border-accent-900/30 transition-colors duration-300";
+                df.innerHTML = `
+                    <div><label class="block text-[11px] font-extrabold text-accent-600 dark:text-accent-400 uppercase tracking-widest mb-2 ml-1">Provider / Plan Name <span class="text-rose-500">*</span></label><input type="text" id="detail1" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. BlueCross BlueShield"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-[11px] font-extrabold text-accent-600 dark:text-accent-400 uppercase tracking-widest mb-2 ml-1">Policy / Member ID <span class="text-rose-500">*</span></label><input type="text" id="detail2" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. XYZ123456789"></div>
+                        <div><label class="block text-[11px] font-extrabold text-accent-600 dark:text-accent-400 uppercase tracking-widest mb-2 ml-1">Group No.</label><input type="text" id="detail3" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 98765"></div>
+                    </div>
+                    <div><label class="block text-[11px] font-extrabold text-accent-600 dark:text-accent-400 uppercase tracking-widest mb-2 ml-1">Drive Image/PDF Link (Optional)</label><div class="relative"><div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fa-brands fa-google-drive text-slate-400 text-lg"></i></div><input type="url" id="reportLink" class="input-premium w-full p-4 pl-12 rounded-2xl font-medium placeholder:text-slate-400" placeholder="Paste link to ID card here..."></div></div>
+                `;
             }
         }
 
@@ -576,14 +705,35 @@
         async function fetchData() {
             toggleLoading(true);
             try {
-                const response = await fetch(APPS_SCRIPT_URL);
+                const response = await fetch(`${APPS_SCRIPT_URL}?pwd=${encodeURIComponent(USER_PWD)}`);
                 const json = await response.json();
+                
+                if (json.error) {
+                    if (json.error.includes('Unauthorized')) {
+                        alert("Secure Vault Error: Incorrect Password.");
+                        logoutVault();
+                    } else {
+                        alert("Error: " + json.error);
+                    }
+                    return;
+                }
+                
                 healthData = json.data || [];
+                localStorage.setItem('fh_cached_data', JSON.stringify(healthData));
                 extractFamilyMembers();
                 renderAll();
+                document.getElementById('offlineBanner').classList.add('hidden');
             } catch (error) {
                 console.error("Fetch error:", error);
-                alert("Failed to sync. Please check your App Script URL.");
+                const cached = localStorage.getItem('fh_cached_data');
+                if (cached) {
+                    healthData = JSON.parse(cached);
+                    extractFamilyMembers();
+                    renderAll();
+                    document.getElementById('offlineBanner').classList.remove('hidden');
+                } else {
+                    alert("Failed to sync and no offline data available. Please check your internet connection.");
+                }
             } finally {
                 toggleLoading(false);
             }
@@ -594,6 +744,17 @@
             familyMembersList = [...new Set(memberRecords.map(r => r.Family_Member))];
             healthData.forEach(r => { if(r.Family_Member && r.Type !== 'Member' && !familyMembersList.includes(r.Family_Member)) familyMembersList.push(r.Family_Member); });
             populateMemberDropdowns();
+            updateDataLists();
+        }
+
+        function updateDataLists() {
+            const docs = [...new Set(healthData.filter(r => r.Type === 'Checkup').map(r => r.Detail_1))];
+            const meds = [...new Set(healthData.filter(r => r.Type === 'Medicine').map(r => r.Detail_1))];
+            const vitals = [...new Set(healthData.filter(r => r.Type === 'Vital').map(r => r.Detail_1))];
+            
+            document.getElementById('doctorsList').innerHTML = docs.map(d => `<option value="${d}">`).join('');
+            document.getElementById('medicinesList').innerHTML = meds.map(m => `<option value="${m}">`).join('');
+            document.getElementById('vitalsList').innerHTML = vitals.map(v => `<option value="${v}">`).join('');
         }
 
         function populateMemberDropdowns() {
@@ -613,37 +774,39 @@
         }
         async function submitNewMember(e) {
             e.preventDefault();
-            if (APPS_SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") { alert("Action blocked: Please link your Google Drive first."); return; }
-            
             const name = document.getElementById('newMemberName').value.trim();
             if(!name) return;
 
             const payload = { 
+                pwd: USER_PWD,
                 timestamp: new Date().toISOString(), 
                 type: 'Member', 
                 member: name,
                 detail1: document.getElementById('newMemberBloodType').value,
-                detail2: document.getElementById('newMemberAllergies').value
+                detail2: document.getElementById('newMemberAllergies').value,
+                detail3: document.getElementById('newMemberInsurance').value,
+                notes: document.getElementById('newMemberPhone').value
             };
             
             closeAddMemberModal();
             toggleLoading(true);
             try {
-                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const res = await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 document.getElementById('newMemberName').value = "";
                 document.getElementById('newMemberBloodType').value = "";
                 document.getElementById('newMemberAllergies').value = "";
+                document.getElementById('newMemberInsurance').value = "";
+                document.getElementById('newMemberPhone').value = "";
                 setTimeout(() => fetchData(), 1500); 
             } catch (error) {
-                alert("Failed to save member."); toggleLoading(false);
+                alert("Failed to save member securely."); toggleLoading(false);
             }
         }
 
         async function submitRecord(e) {
             e.preventDefault();
-            if (APPS_SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") { alert("Action blocked: Please link your Google Drive first."); return; }
-
             const payload = {
+                pwd: USER_PWD,
                 timestamp: new Date().toISOString(),
                 date: document.getElementById('recordDate').value,
                 type: document.getElementById('recordType').value,
@@ -664,7 +827,7 @@
                 navigate('dashboard');
                 setTimeout(() => fetchData(), 1500); 
             } catch (error) {
-                alert("Failed to save to Drive."); toggleLoading(false);
+                alert("Failed to save to Secure Vault."); toggleLoading(false);
             }
         }
 
@@ -690,6 +853,27 @@
             let endD = new Date(today); endD.setDate(endD.getDate() + daysLeft);
             let pct = Math.min(100, Math.max(0, (remain / total) * 100));
             return { remain, total, dose, daysLeft, endD, pct };
+        }
+
+        function buildInsuranceCard(row, includeMember = true) {
+            const reportBtn = row.Report_Link ? `<a href="${row.Report_Link}" target="_blank" class="mt-4 inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 no-print"><i class="fa-brands fa-google-drive text-brand-500 mr-2"></i>View Policy Doc</a>` : '';
+            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${row.Family_Member}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span></div>` : ``;
+            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${row.Family_Member}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-shield-halved"></i></div>`;
+
+            return `
+                <div class="glass-card print-card p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center">${avatarHtml}<div><h3 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1}</h3>${memberHtml}</div></div>
+                        <div class="bg-accent-50 text-accent-600 border-accent-100 dark:bg-accent-900/30 dark:border-accent-800 dark:text-accent-400 flex flex-col items-center justify-center px-3 py-2 rounded-xl border shrink-0"><i class="fa-solid fa-shield-halved text-lg"></i></div>
+                    </div>
+                    <div class="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div><span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Policy / Member ID</span><span class="font-bold text-slate-700 dark:text-slate-300">${row.Detail_2}</span></div>
+                            <div><span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Group No.</span><span class="font-bold text-slate-700 dark:text-slate-300">${row.Detail_3 || '-'}</span></div>
+                        </div>
+                        ${reportBtn}
+                    </div>
+                </div>`;
         }
 
         function buildMedicineCard(row, includeMember = true) {
@@ -730,16 +914,17 @@
 
             if (isSearch) {
                 return `
-                    <div class="glass-card p-5 hover:shadow-lg transition-shadow mb-4 print-card">
-                        <div class="flex flex-wrap justify-between items-start gap-2">
-                            <div class="flex items-center">
-                                <div class="h-12 w-12 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center mr-4 shrink-0 no-print"><i class="fa-solid ${icon} ${iconClass.split(' ')[0].replace('bg-','text-')} text-lg"></i></div>
-                                <div>${titleHtml} <div class="mt-1">${memberBadge}</div></div>
+                    <div class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer flex items-center justify-between" onclick="toggleSearch(); openMemberProfile('${row.Family_Member}')">
+                        <div class="flex items-center overflow-hidden mr-3">
+                            <div class="h-12 w-12 rounded-full bg-white dark:bg-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 no-print"><i class="fa-solid ${icon} ${iconClass.split(' ')[0].replace('bg-','text-')} text-lg"></i></div>
+                            <div class="ml-4 truncate">
+                                ${titleHtml}
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate">${row.Family_Member}</p>
                             </div>
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         </div>
-                        ${row.Notes ? `<p class="text-sm text-slate-600 dark:text-slate-300 font-medium mt-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">"${row.Notes}"</p>` : ''}
-                        ${reportBtn}
+                        <div class="shrink-0 text-right">
+                            <span class="block text-xs font-bold text-slate-400 uppercase tracking-widest">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </div>
                     </div>`;
             }
 
@@ -823,6 +1008,52 @@
                         </div>`;
                 });
             } else { upcomingSec.style.display = 'none'; }
+            
+            renderDailyChecklist();
+        }
+
+        function renderDailyChecklist() {
+            const cont = document.getElementById('dailyChecklistContainer');
+            cont.innerHTML = '';
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const checklistKey = `fh_medChecklist_${todayStr}`;
+            let checklistState = JSON.parse(localStorage.getItem(checklistKey) || '{}');
+            
+            const activeMeds = healthData.filter(r => r.Type === 'Medicine');
+            if (activeMeds.length === 0) {
+                cont.innerHTML = `<div class="glass-card p-6 text-center text-slate-400 font-medium">No active medicines to track today.</div>`;
+                return;
+            }
+
+            activeMeds.forEach((m, idx) => {
+                // Determine if this specific medicine is checked off today
+                // Use a combination of member and medicine name as unique ID
+                const medId = `${m.Family_Member}_${m.Detail_1}`;
+                const isChecked = checklistState[medId] === true;
+                
+                const bgClass = isChecked ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700';
+                const textClass = isChecked ? 'text-emerald-700 dark:text-emerald-400 line-through opacity-70' : 'text-slate-800 dark:text-white';
+                const checkIcon = isChecked ? '<i class="fa-solid fa-circle-check text-emerald-500 text-2xl"></i>' : '<i class="fa-regular fa-circle text-slate-300 dark:text-slate-600 text-2xl hover:text-brand-500 transition-colors"></i>';
+
+                cont.innerHTML += `
+                    <div class="p-4 rounded-[1.25rem] border ${bgClass} flex items-center justify-between cursor-pointer transition-all hover:shadow-md" onclick="toggleDailyMedicine('${medId}', '${checklistKey}')">
+                        <div class="flex items-center">
+                            <div class="mr-4 shrink-0">${checkIcon}</div>
+                            <div>
+                                <h4 class="font-extrabold ${textClass} text-base transition-all">${m.Detail_1}</h4>
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">${m.Family_Member} • Dose: ${m.Detail_3}/day</p>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function toggleDailyMedicine(medId, checklistKey) {
+            let checklistState = JSON.parse(localStorage.getItem(checklistKey) || '{}');
+            checklistState[medId] = !checklistState[medId]; // toggle
+            localStorage.setItem(checklistKey, JSON.stringify(checklistState));
+            renderDailyChecklist(); // Re-render just the checklist
         }
 
         function renderFamily() {
@@ -883,9 +1114,12 @@
             const memberRow = healthData.find(r => r.Type === 'Member' && r.Family_Member === currentActiveMemberName);
             const bType = memberRow?.Detail_1 || 'Unknown';
             const alg = memberRow?.Detail_2 || 'None Listed';
+            const ins = memberRow?.Detail_3 || 'None Listed';
+            const docPhone = memberRow?.Notes || 'None Listed';
 
             const meds = currentProfileData.filter(r => r.Type === 'Medicine');
             const history = currentProfileData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').sort((a, b) => new Date(b.Date) - new Date(a.Date));
+            const insurances = currentProfileData.filter(r => r.Type === 'Insurance');
 
             let html = `
                 <div class="print-header">
@@ -893,20 +1127,17 @@
                     <p style="margin: 5px 0 0 0; font-size: 12px; color: #555;">Generated on ${d} via Family Health Hub</p>
                 </div>
                 <div style="margin-bottom: 20px; padding: 10px; background: #f0f0f0; border-radius: 6px;">
-                    <strong>Blood Type:</strong> ${bType} | <strong>Allergies:</strong> ${alg}
+                    <strong>Blood Type:</strong> ${bType} | <strong>Allergies:</strong> ${alg}<br>
+                    <strong>Insurance:</strong> ${ins} | <strong>Dr. Phone:</strong> ${docPhone}
                 </div>
             `;
 
-            const htRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('height'));
-            const wtRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('weight'));
-            if (htRec && wtRec) {
-                let h = parseFloat(htRec.Detail_2);
-                let w = parseFloat(wtRec.Detail_2);
-                if (htRec.Detail_3 && htRec.Detail_3.toLowerCase().includes('cm')) h = h / 100;
-                if (h > 0 && w > 0) {
-                    let bmi = (w / (h * h)).toFixed(1);
-                    html += `<div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;"><strong>Latest Calculated BMI:</strong> ${bmi} (Height: ${htRec.Detail_2}${htRec.Detail_3||''}, Weight: ${wtRec.Detail_2}${wtRec.Detail_3||''})</div>`;
-                }
+            if (insurances.length > 0) {
+                html += `<h2>Insurance Policies</h2><div class="print-grid">`;
+                insurances.forEach(i => {
+                    html += `<div class="print-card"><strong style="font-size: 16px;">${i.Detail_1}</strong><br>Policy/ID: ${i.Detail_2}<br>Group No: ${i.Detail_3 || 'N/A'}</div>`;
+                });
+                html += `</div>`;
             }
 
             html += `<h2>Active Medications (${meds.length})</h2><div class="print-grid">`;
@@ -929,6 +1160,80 @@
             window.print();
         }
 
+        function generateLockScreen() {
+            if(!currentActiveMemberName) return;
+            const memberRow = healthData.find(r => r.Type === 'Member' && r.Family_Member === currentActiveMemberName);
+            const bType = memberRow?.Detail_1 || 'None Listed';
+            const alg = memberRow?.Detail_2 || 'None Listed';
+            const docPhone = memberRow?.Notes || 'None Listed';
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 1080;
+            canvas.height = 1920;
+            const ctx = canvas.getContext('2d');
+            
+            // Dark Background
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Decorative Header
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(0, 0, canvas.width, 250);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 60px "Plus Jakarta Sans", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('EMERGENCY MEDICAL ID', canvas.width/2, 150);
+
+            // Name
+            ctx.font = 'bold 80px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText(currentActiveMemberName.toUpperCase(), canvas.width/2, 400);
+
+            // Details
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 45px "Plus Jakarta Sans", sans-serif';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('BLOOD TYPE', 100, 600);
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillText(bType, 100, 670);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('SEVERE ALLERGIES', 100, 850);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillText(alg, 100, 920);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('DOCTOR PHONE', 100, 1100);
+            ctx.fillStyle = '#10b981';
+            ctx.fillText(docPhone, 100, 1170);
+            
+            // Active Meds
+            const meds = currentProfileData.filter(r => r.Type === 'Medicine');
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('ACTIVE MEDICATIONS', 100, 1350);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '40px "Plus Jakarta Sans", sans-serif';
+            if (meds.length === 0) {
+                ctx.fillText('None', 100, 1420);
+            } else {
+                let y = 1420;
+                meds.slice(0, 5).forEach(m => {
+                    ctx.fillText('• ' + m.Detail_1, 100, y);
+                    y += 60;
+                });
+            }
+            
+            // Footer
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#475569';
+            ctx.font = '30px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText('Generated securely by Family Health Hub', canvas.width/2, 1850);
+
+            const link = document.createElement('a');
+            link.download = `Medical_ID_${currentActiveMemberName}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
         function openMemberProfile(memberName) {
             currentActiveMemberName = memberName;
             currentProfileData = healthData.filter(r => r.Family_Member === memberName);
@@ -943,21 +1248,13 @@
             if (memberRow) {
                 if (memberRow.Detail_1) badgesCont.innerHTML += `<span class="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-3 py-1 rounded-lg text-xs font-bold border border-rose-200 dark:border-rose-800"><i class="fa-solid fa-droplet mr-1"></i> Blood: ${memberRow.Detail_1}</span>`;
                 if (memberRow.Detail_2) badgesCont.innerHTML += `<span class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-3 py-1 rounded-lg text-xs font-bold border border-amber-200 dark:border-amber-800"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Allergies: ${memberRow.Detail_2}</span>`;
+                if (memberRow.Detail_3) badgesCont.innerHTML += `<span class="bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 px-3 py-1 rounded-lg text-xs font-bold border border-brand-200 dark:border-brand-800"><i class="fa-solid fa-shield-halved mr-1"></i> Ins: ${memberRow.Detail_3}</span>`;
+                if (memberRow.Notes) badgesCont.innerHTML += `<a href="tel:${memberRow.Notes}" class="bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-400 px-3 py-1 rounded-lg text-xs font-bold border border-accent-200 dark:border-accent-800 hover:bg-accent-200 transition-colors"><i class="fa-solid fa-phone mr-1"></i> Dr: ${memberRow.Notes}</a>`;
             }
 
             const meds = currentProfileData.filter(r => r.Type === 'Medicine');
             const history = currentProfileData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').sort((a, b) => new Date(b.Date) - new Date(a.Date));
-            
-            const htRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('height'));
-            const wtRec = history.find(r => r.Type === 'Vital' && r.Detail_1.toLowerCase().includes('weight'));
-            if (htRec && wtRec) {
-                let h = parseFloat(htRec.Detail_2); let w = parseFloat(wtRec.Detail_2);
-                if (htRec.Detail_3 && htRec.Detail_3.toLowerCase().includes('cm')) h = h / 100;
-                if (h > 0 && w > 0) {
-                    let bmi = (w / (h * h)).toFixed(1);
-                    badgesCont.innerHTML += `<span class="bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 px-3 py-1 rounded-lg text-xs font-bold border border-brand-200 dark:border-brand-800"><i class="fa-solid fa-weight-scale mr-1"></i> BMI: ${bmi}</span>`;
-                }
-            }
+            const insurances = currentProfileData.filter(r => r.Type === 'Insurance');
             
             document.getElementById('profileStats').innerText = `${meds.length} Active Meds • ${history.length} Logs`;
 
@@ -980,6 +1277,13 @@
             medsCont.innerHTML = "";
             meds.forEach(m => medsCont.innerHTML += buildMedicineCard(m, false));
             if(meds.length===0) medsCont.innerHTML = `<div class="glass-card p-6 text-slate-400 italic text-sm">No active medicines.</div>`;
+
+            const insCont = document.getElementById('profileInsuranceContainer');
+            if (insCont) {
+                insCont.innerHTML = "";
+                insurances.forEach(ins => insCont.innerHTML += buildInsuranceCard(ins, false));
+                if(insurances.length === 0) insCont.innerHTML = `<div class="glass-card p-6 text-slate-400 italic text-sm">No insurance policies tracked.</div>`;
+            }
 
             const histCont = document.getElementById('profileHistoryContainer');
             histCont.innerHTML = "";
@@ -1054,67 +1358,52 @@
                 let title = '';
                 let subtitle = '';
                 let rightText = '';
+                let onClick = `onclick="toggleSearch(); openMemberProfile('${row.Family_Member}')"`;
                 
                 if (row.Type === 'Member') {
-                    iconHtml = `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-lg font-black shadow-inner shrink-0">${getInitials(row.Family_Member)}</div>`;
+                    iconHtml = `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-lg font-black shadow-inner border-2 border-white dark:border-slate-800 shrink-0">${getInitials(row.Family_Member)}</div>`;
                     title = row.Family_Member;
                     subtitle = "Family Profile";
                     rightText = '<i class="fa-solid fa-chevron-right text-slate-300"></i>';
                 } else if (row.Type === 'Medicine') {
-                    iconHtml = `<div class="h-12 w-12 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-500 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-pills"></i></div>`;
+                    iconHtml = `<div class="h-12 w-12 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-500 flex items-center justify-center text-xl border-2 border-white dark:border-slate-800 shrink-0"><i class="fa-solid fa-pills"></i></div>`;
                     title = row.Detail_1;
                     subtitle = row.Family_Member;
                     const stats = calculateMedicineStats(row);
                     rightText = `${stats.daysLeft} days`;
                 } else if (row.Type === 'Checkup') {
-                    iconHtml = `<div class="h-12 w-12 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-500 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-user-doctor"></i></div>`;
+                    iconHtml = `<div class="h-12 w-12 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-500 flex items-center justify-center text-xl border-2 border-white dark:border-slate-800 shrink-0"><i class="fa-solid fa-user-doctor"></i></div>`;
                     title = row.Detail_1;
                     subtitle = row.Family_Member;
                     rightText = new Date(row.Date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 } else if (row.Type === 'Vital') {
-                    iconHtml = `<div class="h-12 w-12 rounded-full bg-rose-50 dark:bg-rose-900/30 text-rose-500 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-heart-pulse"></i></div>`;
+                    iconHtml = `<div class="h-12 w-12 rounded-full bg-rose-50 dark:bg-rose-900/30 text-rose-500 flex items-center justify-center text-xl border-2 border-white dark:border-slate-800 shrink-0"><i class="fa-solid fa-heart-pulse"></i></div>`;
                     title = `${row.Detail_1} <span class="text-rose-500 font-bold ml-1">${row.Detail_2}</span>`;
                     subtitle = row.Family_Member;
                     rightText = new Date(row.Date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } else if (row.Type === 'Insurance') {
+                    iconHtml = `<div class="h-12 w-12 rounded-full bg-accent-50 dark:bg-accent-900/30 text-accent-500 flex items-center justify-center text-xl border-2 border-white dark:border-slate-800 shrink-0"><i class="fa-solid fa-shield-halved"></i></div>`;
+                    title = row.Detail_1;
+                    subtitle = row.Family_Member;
+                    rightText = 'Policy';
                 }
 
                 listDiv.innerHTML += `
-                    <div class="glass-card p-5 hover:shadow-lg transition-shadow cursor-pointer flex items-center justify-between" onclick="toggleSearch(); openMemberProfile('${row.Family_Member}')">
-                        <div class="flex items-center overflow-hidden">
+                    <div class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer flex items-center justify-between" ${onClick}>
+                        <div class="flex items-center overflow-hidden mr-3">
                             ${iconHtml}
                             <div class="ml-4 truncate">
-                                <h4 class="font-extrabold text-slate-900 dark:text-white text-lg truncate">${title}</h4>
+                                <h4 class="font-extrabold text-slate-900 dark:text-white text-base truncate">${title}</h4>
                                 <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate">${subtitle}</p>
                             </div>
                         </div>
-                        <div class="ml-3 shrink-0 text-right">
+                        <div class="shrink-0 text-right">
                             <span class="block text-xs font-bold text-slate-400 uppercase tracking-widest">${rightText}</span>
                         </div>
                     </div>`;
             });
             container.appendChild(listDiv);
         }
-
-        function loadDemoData() {
-            healthData = [
-                { Type: "Member", Family_Member: "Mom", Detail_1: "O+", Detail_2: "Penicillin" },
-                { Type: "Member", Family_Member: "Dad", Detail_1: "A-", Detail_2: "None" },
-                { Type: "Member", Family_Member: "Tommy", Detail_1: "O+", Detail_2: "Peanuts" },
-                { Date: "2024-05-10", Type: "Checkup", Family_Member: "Mom", Detail_1: "Dr. Smith (Cardiology)", Notes: "Blood pressure is normal.", Report_Link: "https://drive.google.com" },
-                { Date: "2026-10-20", Type: "Checkup", Family_Member: "Tommy", Detail_1: "City Dental Clinic", Notes: "Upcoming teeth cleaning.", Report_Link: "" }, 
-                { Date: "2026-06-15", Type: "Checkup", Family_Member: "Dad", Detail_1: "Eye Exam", Notes: "Annual checkup", Report_Link: "" },
-                { Date: "2024-05-01", Type: "Medicine", Family_Member: "Dad", Detail_1: "Atorvastatin 20mg", Detail_2: "30", Detail_3: "1" }, 
-                { Date: new Date().toISOString().split('T')[0], Type: "Medicine", Family_Member: "Mom", Detail_1: "Vitamin D3", Detail_2: "90", Detail_3: "1" },
-                { Date: "2024-01-10", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "140", Detail_3: "mg/dL" },
-                { Date: "2024-02-15", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "135", Detail_3: "mg/dL" },
-                { Date: "2024-04-05", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "120", Detail_3: "mg/dL" },
-                { Date: "2024-05-25", Type: "Vital", Family_Member: "Dad", Detail_1: "Fasting Sugar", Detail_2: "110", Detail_3: "mg/dL" },
-                { Date: "2024-05-20", Type: "Vital", Family_Member: "Mom", Detail_1: "Weight", Detail_2: "65", Detail_3: "kg" },
-                { Date: "2024-05-20", Type: "Vital", Family_Member: "Mom", Detail_1: "Height", Detail_2: "165", Detail_3: "cm" }
-            ];
-            extractFamilyMembers();
-            renderAll();
-        }
     </script>
 </body>
-</html>l>
+</html>
