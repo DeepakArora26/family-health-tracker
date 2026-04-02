@@ -558,6 +558,10 @@
             const savedUrl = localStorage.getItem('fh_app_url');
             const savedPwd = localStorage.getItem('fh_app_pwd');
             
+            if (savedUrl) {
+                document.getElementById('authUrl').value = savedUrl;
+            }
+            
             if (savedUrl && savedPwd) {
                 APPS_SCRIPT_URL = savedUrl;
                 USER_PWD = savedPwd;
@@ -586,7 +590,6 @@
         }
 
         function logoutVault() {
-            localStorage.removeItem('fh_app_url');
             localStorage.removeItem('fh_app_pwd');
             window.location.reload();
         }
@@ -706,7 +709,12 @@
             toggleLoading(true);
             try {
                 const response = await fetch(`${APPS_SCRIPT_URL}?pwd=${encodeURIComponent(USER_PWD)}`);
-                const json = await response.json();
+                let json;
+                try {
+                    json = await response.json();
+                } catch (e) {
+                    throw new Error("Invalid response. Ensure your Apps Script is deployed with 'Who has access: Anyone'.");
+                }
                 
                 if (json.error) {
                     if (json.error.includes('Unauthorized')) {
@@ -731,8 +739,9 @@
                     extractFamilyMembers();
                     renderAll();
                     document.getElementById('offlineBanner').classList.remove('hidden');
+                    alert(`Sync failed: ${error.message}. Showing offline data.`);
                 } else {
-                    alert("Failed to sync and no offline data available. Please check your internet connection.");
+                    alert(`Failed to connect to Secure Vault.\n\nReason: ${error.message}\n\nPlease check your internet connection or ensure your Google Apps Script is deployed with 'Who has access: Anyone'.`);
                 }
             } finally {
                 toggleLoading(false);
