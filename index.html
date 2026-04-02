@@ -549,6 +549,15 @@
         let currentReportFilter = 'All';
         let currentActiveMemberName = '';
         
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         function getAvatarClass(name) { return ['avatar-grad-1', 'avatar-grad-2', 'avatar-grad-3', 'avatar-grad-4'][(name.charCodeAt(0) || 0) % 4]; }
         function getInitials(name) { return name ? name.substring(0, 2).toUpperCase() : '??'; }
 
@@ -904,8 +913,8 @@
 
         function buildInsuranceCard(row, includeMember = true) {
             const reportBtn = row.Report_Link ? `<a href="${row.Report_Link}" target="_blank" class="mt-4 inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 no-print"><i class="fa-brands fa-google-drive text-brand-500 mr-2"></i>View Policy Doc</a>` : '';
-            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${row.Family_Member}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span></div>` : ``;
-            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${row.Family_Member}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-shield-halved"></i></div>`;
+            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span></div>` : ``;
+            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-shield-halved"></i></div>`;
 
             return `
                 <div class="glass-card print-card p-6">
@@ -929,8 +938,8 @@
             if (stats.daysLeft <= 7) { barColor = 'bg-gradient-to-r from-amber-400 to-orange-400'; statusPill = 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400'; }
             if (stats.daysLeft <= 2) { barColor = 'bg-gradient-to-r from-rose-500 to-red-500'; statusPill = 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-400'; }
             
-            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${row.Family_Member}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span><span class="mx-2 text-slate-300 dark:text-slate-600">•</span><span class="text-xs font-bold text-slate-400"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</span></div>` : `<div class="text-xs font-bold text-slate-400 mt-1"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</div>`;
-            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${row.Family_Member}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-pills"></i></div>`;
+            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span><span class="mx-2 text-slate-300 dark:text-slate-600">•</span><span class="text-xs font-bold text-slate-400"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</span></div>` : `<div class="text-xs font-bold text-slate-400 mt-1"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</div>`;
+            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-pills"></i></div>`;
 
             return `
                 <div class="glass-card print-card p-6">
@@ -957,11 +966,11 @@
                 titleHtml = `<h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1} <span class="text-rose-500 ml-2">${row.Detail_2} <span class="text-sm font-bold opacity-80">${row.Detail_3||''}</span></span></h4>`;
             }
 
-            const memberBadge = showMember ? `<span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest font-bold ml-3 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 no-print" onclick="openMemberProfile('${row.Family_Member}')">${row.Family_Member}</span>` : '';
+            const memberBadge = showMember ? `<span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest font-bold ml-3 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')">${row.Family_Member}</span>` : '';
 
             if (isSearch) {
                 return `
-                    <div class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer flex items-center justify-between" onclick="toggleSearch(); openMemberProfile('${row.Family_Member}')">
+                    <div class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer flex items-center justify-between" onclick="toggleSearch(); openMemberProfile('${escapeHtml(row.Family_Member)}')">
                         <div class="flex items-center overflow-hidden mr-3">
                             <div class="h-12 w-12 rounded-full bg-white dark:bg-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 no-print"><i class="fa-solid ${icon} ${iconClass.split(' ')[0].replace('bg-','text-')} text-lg"></i></div>
                             <div class="ml-4 truncate">
@@ -1014,7 +1023,7 @@
                     const bgClass = isCritical ? 'bg-gradient-to-r from-rose-500 to-rose-600 shadow-rose-200 dark:shadow-none' : 'bg-gradient-to-r from-amber-400 to-amber-500 shadow-amber-200 dark:shadow-none';
                     const icon = isCritical ? 'fa-circle-exclamation' : 'fa-bell';
                     alertsCont.innerHTML += `
-                        <div class="${bgClass} shadow-lg p-5 rounded-[1.5rem] text-white flex items-center justify-between cursor-pointer hover:scale-[1.02] transition-transform" onclick="openMemberProfile('${row.Family_Member}')">
+                        <div class="${bgClass} shadow-lg p-5 rounded-[1.5rem] text-white flex items-center justify-between cursor-pointer hover:scale-[1.02] transition-transform" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')">
                             <div class="flex items-center">
                                 <div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} border-2 border-white/50 text-white flex items-center justify-center font-black shadow-inner mr-4 shrink-0">${getInitials(row.Family_Member)}</div>
                                 <div><div class="text-white/90 text-[10px] font-black uppercase tracking-widest mb-0.5"><i class="fa-solid ${icon} mr-1"></i> Refill Needed</div><h3 class="font-extrabold text-lg text-white drop-shadow-sm">${row.Detail_1}</h3></div>
@@ -1113,7 +1122,7 @@
                 const activity = memData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').length;
                 
                 grid.innerHTML += `
-                    <div onclick="openMemberProfile('${member}')" class="glass-card p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group">
+                    <div onclick="openMemberProfile('${escapeHtml(member)}')" class="glass-card p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group">
                         <div class="h-20 w-20 rounded-full ${getAvatarClass(member)} text-white flex items-center justify-center text-2xl font-black shadow-inner mb-4 border-4 border-white dark:border-slate-800 group-hover:scale-105 transition-transform">${getInitials(member)}</div>
                         <h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${member}</h4>
                         <div class="mt-3 w-full flex justify-between px-2 text-xs font-bold text-slate-500 dark:text-slate-400">
@@ -1405,7 +1414,7 @@
                 let title = '';
                 let subtitle = '';
                 let rightText = '';
-                let onClick = `onclick="toggleSearch(); openMemberProfile('${row.Family_Member}')"`;
+                let onClick = `onclick="toggleSearch(); openMemberProfile('${escapeHtml(row.Family_Member)}')"`;
                 
                 if (row.Type === 'Member') {
                     iconHtml = `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-lg font-black shadow-inner border-2 border-white dark:border-slate-800 shrink-0">${getInitials(row.Family_Member)}</div>`;

@@ -20,7 +20,7 @@ Instead, it relies on a secure "Vault Key" system:
 
 ### Phase 1: Configure & Deploy the Backend (Google Drive)
 
-**Good News:** You DO NOT need to manually create a CSV file or attach a script to a spreadsheet! This is a standalone script that automatically creates and manages the CSV file for you.
+**Good News:** You DO NOT need to manually create a spreadsheet or write any formulas! This is a standalone script that automatically creates and manages a secure Google Sheet for you.
 
 1. Go to [Google Apps Script](https://script.google.com/) and sign in with your Google account.
 2. Click the **"New project"** button in the top left.
@@ -34,8 +34,8 @@ Instead, it relies on a secure "Vault Key" system:
    Change `"my-secure-family-password"` to a strong, unique password. You will need this password later to unlock the app on your phone!
 7. Click the **Save** icon (the floppy disk).
 8. **Create the Database:** In the top toolbar, select the `setup` function from the dropdown menu (next to "Debug") and click **"Run"**. 
-   - *Note: Google will ask for permissions because this script needs access to your Google Drive to create the CSV file. Click "Review permissions", choose your account, click "Advanced", and click "Go to project".*
-9. **Success!** The script has now automatically created a new file in your main Google Drive folder called `FamilyHealthData.csv`. You never have to touch this file manually; the app will do all the reading and writing for you!
+   - *Note: Google will ask for permissions because this script needs access to your Google Drive to create the Spreadsheet. Click "Review permissions", choose your account, click "Advanced", and click "Go to project".*
+9. **Success!** The script has now automatically created a new file in your main Google Drive folder called `FamilyHealthVault` (A Google Sheet with tabs for Medicines, Checkups, etc.). You never have to touch this file manually; the app will do all the reading and writing for you!
 
 ### Phase 2: Get your Web App URL
 
