@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HealthHub">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Family%20Health%20Hub%20Pro%22%2C%22short_name%22%3A%22HealthHub%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%2314b8a6%22%7D">
     <title>Family Health Hub Pro</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -107,6 +112,31 @@
         #appContent {
             display: none;
         }
+
+        /* Pull to Refresh */
+        #pullToRefreshIndicator {
+            position: absolute; top: -50px; left: 50%; transform: translateX(-50%);
+            width: 40px; height: 40px; border-radius: 50%;
+            background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            opacity: 0; z-index: 20;
+        }
+        .dark #pullToRefreshIndicator { background: #1e293b; box-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+        #pullToRefreshIndicator.visible { opacity: 1; }
+        #pullToRefreshIndicator.refreshing i { animation: spin 0.8s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Delete buttons: hidden on desktop, show on hover; always visible on touch */
+        @media (hover: hover) {
+            .delete-btn { opacity: 0; }
+            .glass-card:hover > .delete-btn,
+            .group\/hist:hover > .delete-btn,
+            .group\/card:hover > .delete-btn { opacity: 1; }
+        }
+        @media (hover: none) {
+            .delete-btn { opacity: 0.5; }
+        }
     </style>
 </head>
 <body class="antialiased h-[100dvh] overflow-hidden flex transition-colors duration-300 text-slate-800 dark:text-slate-200">
@@ -160,8 +190,8 @@
             <div class="absolute inset-0 border-4 border-brand-500 rounded-full border-t-transparent animate-spin"></div>
             <i class="fa-solid fa-shield-halved absolute inset-0 flex items-center justify-center text-brand-500 text-xl animate-pulse"></i>
         </div>
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Syncing Securely</h2>
-        <p class="text-slate-500 dark:text-slate-400 font-medium mt-2">Connecting to Google Drive...</p>
+        <h2 id="loadingText" class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Syncing Securely</h2>
+        <p id="loadingSubText" class="text-slate-500 dark:text-slate-400 font-medium mt-2">Connecting to Google Drive...</p>
     </div>
 
     <!-- ========================================== -->
@@ -232,7 +262,9 @@
             </header>
 
             <!-- Desktop Top Bar -->
-            <div id="desktopTopBar" class="hidden md:flex absolute top-6 right-10 space-x-4 z-50">
+            <div id="desktopTopBar" class="hidden md:flex absolute top-6 right-10 space-x-4 z-50 items-center">
+                <span id="lastSyncBadge" class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest hidden"><i class="fa-solid fa-cloud-check mr-1"></i><span id="lastSyncText">Never</span></span>
+                <button onclick="exportData()" title="Export Data" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors"><i class="fa-solid fa-download"></i></button>
                 <button onclick="toggleSearch()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors"><i class="fa-solid fa-magnifying-glass"></i></button>
                 <button onclick="fetchData()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-brand-500 transition-colors"><i class="fa-solid fa-rotate-right"></i></button>
                 <button onclick="toggleDarkMode()" class="h-12 w-12 bg-white dark:bg-slate-800 rounded-full shadow-soft border border-slate-200 dark:border-slate-700 items-center justify-center text-slate-500 dark:text-slate-300 hover:text-amber-500 transition-colors"><i class="fa-solid fa-moon dark:hidden"></i><i class="fa-solid fa-sun hidden dark:block text-amber-400"></i></button>
@@ -240,9 +272,15 @@
 
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-4 md:p-10 pb-52 md:pb-10 relative" id="mainScrollArea">
+                <div id="pullToRefreshIndicator"><i class="fa-solid fa-rotate-right text-brand-500"></i></div>
 
                 <!-- 1. DASHBOARD PAGE -->
                 <div id="page-dashboard" class="page-view active max-w-6xl mx-auto">
+                    <div id="offlineBanner" class="hidden mb-6 bg-rose-500 text-white p-4 rounded-[1.5rem] flex items-center justify-between shadow-lg shadow-rose-500/20">
+                        <div class="flex items-center"><i class="fa-solid fa-wifi mr-3 text-xl"></i><div><h4 class="font-black text-sm">Offline Mode</h4><p class="text-xs font-medium opacity-90">Viewing cached data. Changes cannot be saved until internet is restored.</p></div></div>
+                        <button onclick="fetchData()" class="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Retry</button>
+                    </div>
+
                     <div class="mb-10 pt-4 md:pt-0">
                         <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Overview</p>
                         <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white" id="greetingText">Good Morning!</h2>
@@ -288,6 +326,14 @@
                             <div id="dashboardActivity" class="space-y-4"></div>
                         </section>
                     </div>
+                    
+                    <!-- Daily Medicine Checklist Section -->
+                    <section class="mt-10">
+                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-4 flex items-center">
+                            <i class="fa-solid fa-clipboard-check text-emerald-500 mr-2"></i> Today's Medicine Checklist
+                        </h3>
+                        <div id="dailyChecklistContainer" class="space-y-3"></div>
+                    </section>
                 </div>
 
                 <!-- 2. FAMILY MEMBERS PAGE -->
@@ -313,11 +359,17 @@
                     
                     <div class="glass-card p-8 mb-8 flex flex-col md:flex-row items-center md:justify-between text-center md:text-left gap-6 relative overflow-hidden">
                         <div class="absolute top-4 right-4 md:top-6 md:right-6 flex flex-col gap-2">
+                            <button onclick="openEditMemberModal()" class="bg-brand-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-brand-600 transition-colors flex items-center justify-center shadow-md shadow-brand-500/20">
+                                <i class="fa-solid fa-pen-to-square mr-2"></i> Edit Profile
+                            </button>
                             <button onclick="printDoctorReport()" class="bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-400 px-4 py-2 rounded-lg font-bold text-sm hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <i class="fa-solid fa-print mr-2"></i> Print for Doctor
                             </button>
                             <button onclick="generateLockScreen()" class="bg-rose-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-rose-600 transition-colors flex items-center justify-center shadow-md shadow-rose-500/20">
                                 <i class="fa-solid fa-mobile-screen mr-2"></i> Medical ID Image
+                            </button>
+                            <button onclick="deleteMember(currentActiveMemberName)" class="bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <i class="fa-solid fa-user-minus mr-2"></i> Remove
                             </button>
                         </div>
 
@@ -362,15 +414,20 @@
 
                 <!-- 4. MEDICINES PAGE -->
                 <div id="page-medicines" class="page-view max-w-6xl mx-auto">
-                    <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pt-4 md:pt-0">
+                    <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pt-4 md:pt-0">
                         <div>
                             <p class="text-brand-500 font-bold tracking-widest text-xs uppercase mb-1">Inventory</p>
                             <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Medicines Cabinet</h2>
-                            <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">All active prescriptions across the family.</p>
+                            <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">All prescriptions across the family.</p>
                         </div>
                         <button onclick="navigate('add', 'Medicine')" class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-2.5 rounded-xl font-bold hover:opacity-90 transition-colors shadow-soft flex items-center shrink-0">
                             <i class="fa-solid fa-plus mr-2"></i>Add Medicine
                         </button>
+                    </div>
+                    <div class="flex items-center space-x-3 mb-8">
+                        <button onclick="setMedFilter('active')" id="medFilter-active" class="px-5 py-2 rounded-full font-bold text-sm shrink-0 transition-colors shadow-sm bg-slate-900 dark:bg-white text-white dark:text-slate-900">Active</button>
+                        <button onclick="setMedFilter('finished')" id="medFilter-finished" class="px-5 py-2 rounded-full font-bold text-sm shrink-0 transition-colors shadow-sm bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">Finished</button>
+                        <button onclick="setMedFilter('all')" id="medFilter-all" class="px-5 py-2 rounded-full font-bold text-sm shrink-0 transition-colors shadow-sm bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">All</button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="allMedicinesContainer"></div>
                 </div>
@@ -483,7 +540,7 @@
     <!-- OVERLAYS & MODALS                          -->
     <!-- ========================================== -->
     <div id="addMemberModal" class="overlay-modal fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] shadow-2xl p-6 md:p-8 transform scale-95 transition-transform border border-slate-200 dark:border-slate-700" id="addMemberModalContent">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] shadow-2xl p-6 md:p-8 transform scale-95 transition-transform border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto" id="addMemberModalContent">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-2xl font-black text-slate-900 dark:text-white">Add Member</h3>
                 <button onclick="closeAddMemberModal()" class="text-slate-400 hover:text-rose-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -491,7 +548,11 @@
             <form onsubmit="submitNewMember(event)">
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Full Name <span class="text-rose-500">*</span></label>
-                    <input type="text" id="newMemberName" required class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. Grandma">
+                    <input type="text" id="newMemberName" required maxlength="50" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. Grandma">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Date of Birth (Optional)</label>
+                    <input type="date" id="newMemberDob" class="input-premium w-full p-3.5 rounded-2xl font-semibold">
                 </div>
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Blood Type (Optional)</label>
@@ -505,17 +566,60 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Allergies (Optional)</label>
-                    <input type="text" id="newMemberAllergies" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. Penicillin, Peanuts">
+                    <input type="text" id="newMemberAllergies" maxlength="200" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. Penicillin, Peanuts">
                 </div>
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Insurance / Policy No. (Optional)</label>
-                    <input type="text" id="newMemberInsurance" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. BlueCross - #123456">
+                    <input type="text" id="newMemberInsurance" maxlength="100" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. BlueCross - #123456">
                 </div>
                 <div class="mb-8">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Primary Dr. Phone (Optional)</label>
-                    <input type="tel" id="newMemberPhone" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. 555-0199">
+                    <input type="tel" id="newMemberPhone" maxlength="20" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. 555-0199">
                 </div>
                 <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-4 rounded-2xl hover:scale-[1.02] shadow-glow-green transition-all flex justify-center items-center"><i class="fa-solid fa-user-plus mr-2"></i> Save Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT MEMBER MODAL (NEW) -->
+    <div id="editMemberModal" class="overlay-modal fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] shadow-2xl p-6 md:p-8 transform scale-95 transition-transform border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto" id="editMemberModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-black text-slate-900 dark:text-white">Edit Profile</h3>
+                <button onclick="closeEditMemberModal()" class="text-slate-400 hover:text-rose-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="submitEditMember(event)">
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Full Name</label>
+                    <input type="text" id="editMemberName" disabled class="input-premium w-full p-3.5 rounded-2xl font-semibold opacity-60 cursor-not-allowed">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Date of Birth</label>
+                    <input type="date" id="editMemberDob" class="input-premium w-full p-3.5 rounded-2xl font-semibold">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Blood Type</label>
+                    <select id="editMemberBloodType" class="input-premium w-full p-3.5 rounded-2xl font-semibold appearance-none">
+                        <option value="">Unknown</option>
+                        <option value="A+">A+</option><option value="A-">A-</option>
+                        <option value="B+">B+</option><option value="B-">B-</option>
+                        <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                        <option value="O+">O+</option><option value="O-">O-</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Allergies</label>
+                    <input type="text" id="editMemberAllergies" maxlength="200" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. Penicillin, Peanuts">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Insurance / Policy No.</label>
+                    <input type="text" id="editMemberInsurance" maxlength="100" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. BlueCross - #123456">
+                </div>
+                <div class="mb-8">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Primary Dr. Phone</label>
+                    <input type="tel" id="editMemberPhone" maxlength="20" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. 555-0199">
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-brand-400 to-brand-600 text-white font-bold py-4 rounded-2xl hover:scale-[1.02] shadow-glow transition-all flex justify-center items-center"><i class="fa-solid fa-pen-to-square mr-2"></i> Update Profile</button>
             </form>
         </div>
     </div>
@@ -535,6 +639,21 @@
         </div>
     </div>
 
+    <!-- Confirmation Dialog Modal -->
+    <div id="confirmModal" class="overlay-modal fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] shadow-2xl p-6 md:p-8 transform scale-95 transition-transform border border-slate-200 dark:border-slate-700 text-center" id="confirmModalContent">
+            <div id="confirmIcon" class="h-16 w-16 bg-rose-50 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+                <i class="fa-solid fa-trash-can text-rose-500 text-2xl"></i>
+            </div>
+            <h3 id="confirmTitle" class="text-xl font-black text-slate-900 dark:text-white mb-2">Are you sure?</h3>
+            <p id="confirmMessage" class="text-sm text-slate-500 dark:text-slate-400 font-medium mb-8">This action cannot be undone.</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal()" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-3.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                <button id="confirmActionBtn" class="flex-1 bg-rose-500 text-white font-bold py-3.5 rounded-xl hover:bg-rose-600 transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========================================== -->
     <!-- JAVASCRIPT LOGIC                           -->
     <!-- ========================================== -->
@@ -548,7 +667,10 @@
         let familyMembersList = [];
         let currentReportFilter = 'All';
         let currentActiveMemberName = '';
-        
+        let currentMedFilter = 'active';
+        let lastSyncTime = null;
+        let pendingConfirmCallback = null;
+
         function escapeHtml(str) {
             return String(str)
                 .replace(/&/g, "&amp;")
@@ -557,9 +679,61 @@
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
         }
+        
+        function escapeJs(str) {
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        function buildDeleteBtn(row, size = 'md') {
+            const sizeClasses = size === 'sm' ? 'h-7 w-7 text-[10px]' : 'h-8 w-8 text-xs';
+            const ts = escapeJs(row.Timestamp || '');
+            const mem = escapeJs(row.Family_Member || '');
+            const d1 = escapeJs(row.Detail_1 || '');
+            const tp = escapeJs(row.Type || '');
+            return `<button onclick="event.stopPropagation(); triggerDelete('${tp}','${ts}','${mem}','${d1}')" class="delete-btn absolute top-3 right-3 ${sizeClasses} bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all no-print" title="Delete"><i class="fa-solid fa-trash-can"></i></button>`;
+        }
+
+        function triggerDelete(type, timestamp, member, detail1) {
+            const row = healthData.find(r =>
+                r.Type === type && String(r.Timestamp) === timestamp &&
+                r.Family_Member === member && r.Detail_1 === detail1
+            );
+            if (row) deleteRecord(row);
+        }
 
         function getAvatarClass(name) { return ['avatar-grad-1', 'avatar-grad-2', 'avatar-grad-3', 'avatar-grad-4'][(name.charCodeAt(0) || 0) % 4]; }
         function getInitials(name) { return name ? name.substring(0, 2).toUpperCase() : '??'; }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'No date';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return 'No date';
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function showToast(message, type = 'success') {
+            const existing = document.getElementById('toastNotification');
+            if (existing) existing.remove();
+
+            const colors = {
+                success: 'bg-emerald-500 shadow-emerald-500/30',
+                error: 'bg-rose-500 shadow-rose-500/30',
+                info: 'bg-brand-500 shadow-brand-500/30'
+            };
+            const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+
+            const toast = document.createElement('div');
+            toast.id = 'toastNotification';
+            toast.className = `fixed top-6 left-1/2 -translate-x-1/2 z-[300] ${colors[type]} text-white px-6 py-4 rounded-2xl shadow-xl flex items-center space-x-3 font-bold text-sm transition-all duration-300 opacity-0 scale-95`;
+            toast.innerHTML = `<i class="fa-solid ${icons[type]} text-lg"></i><span>${message}</span>`;
+            document.body.appendChild(toast);
+
+            requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(-50%) scale(1)'; });
+            setTimeout(() => {
+                toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) scale(0.95)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
 
         // ==========================================
         // AUTHENTICATION LOGIC
@@ -615,8 +789,13 @@
         }
 
         function logoutVault() {
-            localStorage.removeItem('fh_app_pwd');
-            window.location.reload();
+            showConfirm(
+                'Lock Vault?',
+                'You will need to enter your password again to access your data.',
+                'Lock Now',
+                'bg-rose-500',
+                () => { localStorage.removeItem('fh_app_pwd'); window.location.reload(); }
+            );
         }
 
         // ==========================================
@@ -636,7 +815,15 @@
             if (hour < 12) greeting = "Good Morning!"; else if (hour < 18) greeting = "Good Afternoon!";
             document.getElementById('greetingText').innerText = greeting;
 
+            // Wire up confirm button
+            document.getElementById('confirmActionBtn').addEventListener('click', executeConfirm);
+
             selectRecordType('Checkup');
+            initPullToRefresh();
+
+            // Update the "last synced" badge every 30 seconds
+            setInterval(updateLastSyncDisplay, 30000);
+
             fetchData();
         }
 
@@ -686,14 +873,14 @@
                 bg.style.transform = 'translateX(0)';
                 df.className = "space-y-6 bg-brand-50/50 dark:bg-brand-900/10 p-6 rounded-[1.5rem] border border-brand-100/50 dark:border-brand-900/30 transition-colors duration-300";
                 df.innerHTML = `
-                    <div><label class="block text-[11px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 ml-1">Doctor / Clinic <span class="text-rose-500">*</span></label><input type="text" id="detail1" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Dr. Sarah (Dentist)"></div>
+                    <div><label class="block text-[11px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 ml-1">Doctor / Clinic <span class="text-rose-500">*</span></label><input type="text" id="detail1" required list="doctorsList" autocomplete="off" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Dr. Sarah (Dentist)"></div>
                     <div><label class="block text-[11px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-2 ml-1">Drive Report Link (Optional)</label><div class="relative"><div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fa-brands fa-google-drive text-slate-400 text-lg"></i></div><input type="url" id="reportLink" class="input-premium w-full p-4 pl-12 rounded-2xl font-medium placeholder:text-slate-400" placeholder="Paste link here..."></div></div>
                 `;
             } else if (type === 'Medicine') {
                 bg.style.transform = 'translateX(100%)';
                 df.className = "space-y-6 bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[1.5rem] border border-amber-100/50 dark:border-amber-900/30 transition-colors duration-300";
                 df.innerHTML = `
-                    <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Medicine Name <span class="text-rose-500">*</span></label><input type="text" id="detail1" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Paracetamol 500mg"></div>
+                    <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Medicine Name <span class="text-rose-500">*</span></label><input type="text" id="detail1" required list="medicinesList" autocomplete="off" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Paracetamol 500mg"></div>
                     <div class="grid grid-cols-2 gap-4">
                         <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Total Pills <span class="text-rose-500">*</span></label><input type="number" id="detail2" required min="1" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 30"></div>
                         <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Daily Dose <span class="text-rose-500">*</span></label><input type="number" id="detail3" required min="0.5" step="0.5" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 2"></div>
@@ -703,7 +890,7 @@
                 bg.style.transform = 'translateX(200%)';
                 df.className = "space-y-6 bg-rose-50/50 dark:bg-rose-900/10 p-6 rounded-[1.5rem] border border-rose-100/50 dark:border-rose-900/30 transition-colors duration-300";
                 df.innerHTML = `
-                    <div><label class="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2 ml-1">Test / Vital Name <span class="text-rose-500">*</span></label><input type="text" id="detail1" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Fasting Blood Sugar, Height"></div>
+                    <div><label class="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2 ml-1">Test / Vital Name <span class="text-rose-500">*</span></label><input type="text" id="detail1" required list="vitalsList" autocomplete="off" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Fasting Blood Sugar, Height"></div>
                     <div class="grid grid-cols-2 gap-4">
                         <div><label class="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2 ml-1">Value <span class="text-rose-500">*</span></label><input type="text" id="detail2" required class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 110, 180"></div>
                         <div><label class="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2 ml-1">Unit</label><input type="text" id="detail3" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. mg/dL, cm"></div>
@@ -724,21 +911,30 @@
             }
         }
 
-        function toggleLoading(show) {
+        function toggleLoading(show, title = "Syncing Securely", subtitle = "Connecting to Google Drive...") {
             const overlay = document.getElementById('loadingOverlay');
-            if (show) { overlay.classList.remove('hidden'); overlay.classList.add('flex'); setTimeout(() => overlay.style.opacity = '1', 10); } 
+            document.getElementById('loadingText').innerText = title;
+            document.getElementById('loadingSubText').innerText = subtitle;
+            if (show) { overlay.classList.remove('hidden'); overlay.classList.add('flex'); setTimeout(() => overlay.style.opacity = '1', 10); }
             else { overlay.style.opacity = '0'; setTimeout(() => { overlay.classList.add('hidden'); overlay.classList.remove('flex'); }, 300); }
         }
-
-        async function fetchData() {
-            toggleLoading(true);
+        async function fetchData(silent = false) {
+            if (!silent) toggleLoading(true);
             try {
                 const response = await fetch(`${APPS_SCRIPT_URL}?pwd=${encodeURIComponent(USER_PWD)}`);
+                let text;
+                try {
+                    text = await response.text();
+                } catch (e) {
+                    throw new Error("Failed to read response. Ensure your Apps Script is deployed with 'Who has access: Anyone'.");
+                }
+
                 let json;
                 try {
-                    json = await response.json();
+                    json = JSON.parse(text);
                 } catch (e) {
-                    throw new Error("Invalid response. Ensure your Apps Script is deployed with 'Who has access: Anyone'.");
+                    console.error("Raw response:", text);
+                    throw new Error("Invalid JSON response. Ensure your Apps Script is deployed correctly as a Web App.");
                 }
                 
                 if (json.error) {
@@ -753,6 +949,8 @@
                 
                 healthData = json.data || [];
                 localStorage.setItem('fh_cached_data', JSON.stringify(healthData));
+                lastSyncTime = Date.now();
+                updateLastSyncDisplay();
                 extractFamilyMembers();
                 renderAll();
                 document.getElementById('offlineBanner').classList.add('hidden');
@@ -763,13 +961,15 @@
                     healthData = JSON.parse(cached);
                     extractFamilyMembers();
                     renderAll();
-                    document.getElementById('offlineBanner').classList.remove('hidden');
-                    alert(`Sync failed: ${error.message}. Showing offline data.`);
-                } else {
+                    if (!silent) {
+                        document.getElementById('offlineBanner').classList.remove('hidden');
+                        alert(`Sync failed: ${error.message}. Showing offline data.`);
+                    }
+                } else if (!silent) {
                     alert(`Failed to connect to Secure Vault.\n\nReason: ${error.message}\n\nPlease check your internet connection or ensure your Google Apps Script is deployed with 'Who has access: Anyone'.`);
                 }
             } finally {
-                toggleLoading(false);
+                if (!silent) toggleLoading(false);
             }
         }
 
@@ -786,9 +986,9 @@
             const meds = [...new Set(healthData.filter(r => r.Type === 'Medicine').map(r => r.Detail_1))];
             const vitals = [...new Set(healthData.filter(r => r.Type === 'Vital').map(r => r.Detail_1))];
             
-            document.getElementById('doctorsList').innerHTML = docs.map(d => `<option value="${d}">`).join('');
-            document.getElementById('medicinesList').innerHTML = meds.map(m => `<option value="${m}">`).join('');
-            document.getElementById('vitalsList').innerHTML = vitals.map(v => `<option value="${v}">`).join('');
+            document.getElementById('doctorsList').innerHTML = docs.map(d => `<option value="${escapeHtml(d)}">`).join('');
+            document.getElementById('medicinesList').innerHTML = meds.map(m => `<option value="${escapeHtml(m)}">`).join('');
+            document.getElementById('vitalsList').innerHTML = vitals.map(v => `<option value="${escapeHtml(v)}">`).join('');
         }
 
         function populateMemberDropdowns() {
@@ -816,6 +1016,7 @@
                 timestamp: new Date().toISOString(), 
                 type: 'Member', 
                 member: name,
+                date: document.getElementById('newMemberDob').value || "",
                 detail1: document.getElementById('newMemberBloodType').value,
                 detail2: document.getElementById('newMemberAllergies').value,
                 detail3: document.getElementById('newMemberInsurance').value,
@@ -823,29 +1024,143 @@
             };
             
             closeAddMemberModal();
+            toggleLoading(true, "Saving Member", "Encrypting and syncing to Drive...");
             
-            healthData.push({
-                Timestamp: payload.timestamp,
-                Date: "",
-                Type: "Member",
-                Family_Member: payload.member,
-                Detail_1: payload.detail1,
-                Detail_2: payload.detail2,
-                Detail_3: payload.detail3,
-                Notes: payload.notes
-            });
-            
+            try {
+                // Use text/plain for no-cors compatibility (application/json is not a safe-listed header)
+                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+
+                // Optimistically add to local data for immediate UI update
+                healthData.push({
+                    Timestamp: payload.timestamp,
+                    Date: payload.date,
+                    Type: "Member",
+                    Family_Member: payload.member,
+                    Detail_1: payload.detail1,
+                    Detail_2: payload.detail2,
+                    Detail_3: payload.detail3,
+                    Report_Link: "",
+                    Notes: payload.notes
+                });
+                
+                localStorage.setItem('fh_cached_data', JSON.stringify(healthData));
+                extractFamilyMembers();
+                renderAll();
+
+                document.getElementById('newMemberName').value = "";
+                document.getElementById('newMemberDob').value = "";
+                document.getElementById('newMemberBloodType').value = "";
+                document.getElementById('newMemberAllergies').value = "";
+                document.getElementById('newMemberInsurance').value = "";
+                document.getElementById('newMemberPhone').value = "";
+                
+                toggleLoading(false);
+                showToast("Family Member added securely!", "success");
+
+                // Background re-sync to confirm data was saved
+                setTimeout(() => fetchData(true), 3000);
+            } catch (error) {
+                console.error(error);
+                toggleLoading(false);
+                showToast("Failed to save member to Google Drive. Check internet connection.", "error");
+            }
+        }
+
+        // ==========================================
+        // AGE CALCULATION & EDIT MEMBER PROFILE
+        // ==========================================
+        function calculateAge(dobStr) {
+            if (!dobStr) return null;
+            const dob = new Date(dobStr);
+            if (isNaN(dob.getTime())) return null;
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const m = today.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+            return age >= 0 ? age : null;
+        }
+
+        function openEditMemberModal() {
+            const memberRow = healthData.find(r => r.Type === 'Member' && r.Family_Member === currentActiveMemberName);
+            if (!memberRow) { showToast("Member profile not found.", "error"); return; }
+
+            document.getElementById('editMemberName').value = currentActiveMemberName;
+            document.getElementById('editMemberDob').value = memberRow.Date || '';
+            document.getElementById('editMemberBloodType').value = memberRow.Detail_1 || '';
+            document.getElementById('editMemberAllergies').value = memberRow.Detail_2 || '';
+            document.getElementById('editMemberInsurance').value = memberRow.Detail_3 || '';
+            document.getElementById('editMemberPhone').value = memberRow.Notes || '';
+
+            document.getElementById('editMemberModal').classList.add('active');
+            setTimeout(() => document.getElementById('editMemberModalContent').style.transform = 'scale(1)', 10);
+        }
+
+        function closeEditMemberModal() {
+            document.getElementById('editMemberModalContent').style.transform = 'scale(0.95)';
+            setTimeout(() => document.getElementById('editMemberModal').classList.remove('active'), 200);
+        }
+
+        async function submitEditMember(e) {
+            e.preventDefault();
+            const memberName = currentActiveMemberName;
+            const oldRow = healthData.find(r => r.Type === 'Member' && r.Family_Member === memberName);
+            if (!oldRow) return;
+
+            // 1. Delete the old Member record from backend
+            try {
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        pwd: USER_PWD, action: 'delete', type: 'Member',
+                        timestamp: oldRow.Timestamp, member: oldRow.Family_Member, detail1: oldRow.Detail_1
+                    })
+                });
+            } catch (err) { console.error("Edit delete error:", err); }
+
+            // 2. Create updated payload
+            const payload = {
+                pwd: USER_PWD,
+                timestamp: new Date().toISOString(),
+                type: 'Member',
+                member: memberName,
+                date: document.getElementById('editMemberDob').value || "",
+                detail1: document.getElementById('editMemberBloodType').value,
+                detail2: document.getElementById('editMemberAllergies').value,
+                detail3: document.getElementById('editMemberInsurance').value,
+                notes: document.getElementById('editMemberPhone').value
+            };
+
+            // 3. POST new record to backend
+            try {
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) { console.error("Edit save error:", err); }
+
+            // 4. Update local data
+            const idx = healthData.findIndex(r => r.Type === 'Member' && r.Family_Member === memberName);
+            if (idx !== -1) {
+                healthData[idx] = {
+                    Timestamp: payload.timestamp,
+                    Date: payload.date,
+                    Type: "Member",
+                    Family_Member: memberName,
+                    Detail_1: payload.detail1,
+                    Detail_2: payload.detail2,
+                    Detail_3: payload.detail3,
+                    Report_Link: "",
+                    Notes: payload.notes
+                };
+            }
             localStorage.setItem('fh_cached_data', JSON.stringify(healthData));
-            extractFamilyMembers();
-            renderAll();
 
-            fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(e => console.error(e));
-
-            document.getElementById('newMemberName').value = "";
-            document.getElementById('newMemberBloodType').value = "";
-            document.getElementById('newMemberAllergies').value = "";
-            document.getElementById('newMemberInsurance').value = "";
-            document.getElementById('newMemberPhone').value = "";
+            closeEditMemberModal();
+            openMemberProfile(memberName);
+            showToast("Profile updated!", "success");
+            setTimeout(() => fetchData(true), 2000);
         }
 
         async function submitRecord(e) {
@@ -863,7 +1178,10 @@
                 notes: document.getElementById('notes').value || ""
             };
 
-            healthData.push({
+            toggleLoading(true, "Saving Record", "Encrypting and syncing to Drive...");
+
+            // Optimistically add to local data for immediate UI update
+            const newRecord = {
                 Timestamp: payload.timestamp,
                 Date: payload.date,
                 Type: payload.type,
@@ -873,18 +1191,29 @@
                 Detail_3: payload.detail3,
                 Report_Link: payload.link,
                 Notes: payload.notes
-            });
-            
+            };
+            healthData.push(newRecord);
             localStorage.setItem('fh_cached_data', JSON.stringify(healthData));
             extractFamilyMembers();
             renderAll();
 
-            fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(e => console.error(e));
+            try {
+                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+            } catch (err) {
+                console.error("POST error (data saved locally):", err);
+            }
 
             document.getElementById('addRecordForm').reset();
             document.getElementById('recordDate').valueAsDate = new Date();
             document.getElementById('futureDateHint').classList.add('hidden');
+            selectRecordType('Checkup');
+
+            toggleLoading(false);
             navigate('dashboard');
+            showToast("Record saved to Secure Vault!", "success");
+
+            // Background re-sync to confirm data was saved to Google Sheet
+            setTimeout(() => fetchData(true), 3000);
         }
 
         function renderAll() {
@@ -897,7 +1226,12 @@
 
         function calculateMedicineStats(row) {
             const today = new Date(); today.setHours(0,0,0,0);
-            const startDate = new Date(row.Date); startDate.setHours(0,0,0,0);
+            const startDate = new Date(row.Date);
+            if (isNaN(startDate.getTime())) {
+                // If date is invalid, treat as started today
+                startDate.setTime(today.getTime());
+            }
+            startDate.setHours(0,0,0,0);
             const total = parseFloat(row.Detail_2) || 0;
             const dose = parseFloat(row.Detail_3) || 1;
             
@@ -907,17 +1241,18 @@
             const remain = Math.max(0, total - (daysPassed * dose));
             const daysLeft = Math.floor(remain / dose);
             let endD = new Date(today); endD.setDate(endD.getDate() + daysLeft);
-            let pct = Math.min(100, Math.max(0, (remain / total) * 100));
+            let pct = total > 0 ? Math.min(100, Math.max(0, (remain / total) * 100)) : 0;
             return { remain, total, dose, daysLeft, endD, pct };
         }
 
         function buildInsuranceCard(row, includeMember = true) {
             const reportBtn = row.Report_Link ? `<a href="${row.Report_Link}" target="_blank" class="mt-4 inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 no-print"><i class="fa-brands fa-google-drive text-brand-500 mr-2"></i>View Policy Doc</a>` : '';
-            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span></div>` : ``;
-            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-shield-halved"></i></div>`;
+            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${escapeJs(row.Family_Member)}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span></div>` : ``;
+            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${escapeJs(row.Family_Member)}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-shield-halved"></i></div>`;
 
             return `
-                <div class="glass-card print-card p-6">
+                <div class="glass-card print-card p-6 relative group/card">
+                    ${buildDeleteBtn(row)}
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex items-center">${avatarHtml}<div><h3 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1}</h3>${memberHtml}</div></div>
                         <div class="bg-accent-50 text-accent-600 border-accent-100 dark:bg-accent-900/30 dark:border-accent-800 dark:text-accent-400 flex flex-col items-center justify-center px-3 py-2 rounded-xl border shrink-0"><i class="fa-solid fa-shield-halved text-lg"></i></div>
@@ -938,11 +1273,12 @@
             if (stats.daysLeft <= 7) { barColor = 'bg-gradient-to-r from-amber-400 to-orange-400'; statusPill = 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400'; }
             if (stats.daysLeft <= 2) { barColor = 'bg-gradient-to-r from-rose-500 to-red-500'; statusPill = 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-400'; }
             
-            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span><span class="mx-2 text-slate-300 dark:text-slate-600">•</span><span class="text-xs font-bold text-slate-400"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</span></div>` : `<div class="text-xs font-bold text-slate-400 mt-1"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</div>`;
-            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-pills"></i></div>`;
+            const memberHtml = includeMember ? `<div class="flex items-center mt-1 cursor-pointer hover:opacity-80 no-print" onclick="openMemberProfile('${escapeJs(row.Family_Member)}')"><span class="text-xs font-bold text-slate-500 uppercase tracking-widest">${row.Family_Member}</span><span class="mx-2 text-slate-300 dark:text-slate-600">•</span><span class="text-xs font-bold text-slate-400"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</span></div>` : `<div class="text-xs font-bold text-slate-400 mt-1"><i class="fa-solid fa-bolt mr-1"></i>${stats.dose}/day</div>`;
+            const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${escapeJs(row.Family_Member)}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-pills"></i></div>`;
 
             return `
-                <div class="glass-card print-card p-6">
+                <div class="glass-card print-card p-6 relative group/card">
+                    ${buildDeleteBtn(row)}
                     <div class="flex justify-between items-start mb-6">
                         <div class="flex items-center">${avatarHtml}<div><h3 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1}</h3>${memberHtml}</div></div>
                         <div class="${statusPill} flex flex-col items-center justify-center px-3 py-2 rounded-xl border shrink-0"><span class="text-lg font-black leading-none">${stats.daysLeft}</span><span class="text-[8px] uppercase font-extrabold tracking-widest mt-1 opacity-80">Days</span></div>
@@ -955,31 +1291,31 @@
         }
 
         function buildHistoryItem(row, showMember = true, isSearch = false) {
-            const d = new Date(row.Date);
+            const dateDisplay = formatDate(row.Date);
             const reportBtn = row.Report_Link ? `<a href="${row.Report_Link}" target="_blank" class="mt-4 inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-colors border border-slate-200 dark:border-slate-700 no-print"><i class="fa-brands fa-google-drive text-brand-500 mr-2"></i>View Document</a>` : '';
             
             let iconClass = "bg-brand-400 shadow-[0_0_8px_rgba(45,212,191,0.5)]", icon = "fa-user-doctor";
-            let titleHtml = `<h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1}</h4>`;
-            
+            let titleHtml = `<h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${escapeHtml(row.Detail_1)}</h4>`;
+
             if(row.Type === 'Vital') {
-                iconClass = "bg-rose-400 shadow-[0_0_8px_rgba(2fb,113,133,0.5)]"; icon = "fa-heart-pulse";
-                titleHtml = `<h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1} <span class="text-rose-500 ml-2">${row.Detail_2} <span class="text-sm font-bold opacity-80">${row.Detail_3||''}</span></span></h4>`;
+                iconClass = "bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.5)]"; icon = "fa-heart-pulse";
+                titleHtml = `<h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${escapeHtml(row.Detail_1)} <span class="text-rose-500 ml-2">${escapeHtml(row.Detail_2)} <span class="text-sm font-bold opacity-80">${escapeHtml(row.Detail_3||'')}</span></span></h4>`;
             }
 
-            const memberBadge = showMember ? `<span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest font-bold ml-3 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 no-print" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')">${row.Family_Member}</span>` : '';
+            const memberBadge = showMember ? `<span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest font-bold ml-3 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 no-print" onclick="openMemberProfile('${escapeJs(row.Family_Member)}')">${escapeHtml(row.Family_Member)}</span>` : '';
 
             if (isSearch) {
                 return `
-                    <div class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer flex items-center justify-between" onclick="toggleSearch(); openMemberProfile('${escapeHtml(row.Family_Member)}')">
+                    <div class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer flex items-center justify-between" onclick="toggleSearch(); openMemberProfile('${escapeJs(row.Family_Member)}')">
                         <div class="flex items-center overflow-hidden mr-3">
                             <div class="h-12 w-12 rounded-full bg-white dark:bg-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 no-print"><i class="fa-solid ${icon} ${iconClass.split(' ')[0].replace('bg-','text-')} text-lg"></i></div>
                             <div class="ml-4 truncate">
                                 ${titleHtml}
-                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate">${row.Family_Member}</p>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate">${escapeHtml(row.Family_Member)}</p>
                             </div>
                         </div>
                         <div class="shrink-0 text-right">
-                            <span class="block text-xs font-bold text-slate-400 uppercase tracking-widest">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            <span class="block text-xs font-bold text-slate-400 uppercase tracking-widest">${dateDisplay}</span>
                         </div>
                     </div>`;
             }
@@ -990,12 +1326,13 @@
                         <div class="h-10 w-10 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center z-10 shrink-0"><i class="fa-solid ${icon} ${iconClass.split(' ')[0].replace('bg-','text-')} text-sm"></i></div>
                         <div class="h-full w-px bg-slate-200 dark:bg-slate-700 mt-2 min-h-[40px] group-last:hidden"></div>
                     </div>
-                    <div class="glass-card p-5 flex-1 -mt-1 hover:shadow-lg transition-shadow">
-                        <div class="flex flex-wrap justify-between items-start gap-2">
+                    <div class="glass-card p-5 flex-1 -mt-1 hover:shadow-lg transition-shadow relative group/hist">
+                        ${buildDeleteBtn(row, 'sm')}
+                        <div class="flex flex-wrap justify-between items-start gap-2 pr-8">
                             <div class="flex items-center">${titleHtml} ${memberBadge}</div>
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">${dateDisplay}</span>
                         </div>
-                        ${row.Notes ? `<p class="text-sm text-slate-600 dark:text-slate-300 font-medium mt-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">"${row.Notes}"</p>` : ''}
+                        ${row.Notes ? `<p class="text-sm text-slate-600 dark:text-slate-300 font-medium mt-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">"${escapeHtml(row.Notes)}"</p>` : ''}
                         ${reportBtn}
                     </div>
                 </div>`;
@@ -1008,8 +1345,8 @@
             const upcomingSec = document.getElementById('upcomingSection');
             
             let alertCount = 0, medCount = 0, recordCount = healthData.filter(r=>r.Type!=='Member').length;
-            healthData.forEach(r => { if(r.Type==='Medicine') medCount++; });
-            
+            healthData.forEach(r => { if(r.Type==='Medicine' && calculateMedicineStats(r).remain > 0) medCount++; });
+
             document.getElementById('statFamily').innerText = familyMembersList.length;
             document.getElementById('statMeds').innerText = medCount;
             document.getElementById('statRecords').innerText = recordCount;
@@ -1023,7 +1360,7 @@
                     const bgClass = isCritical ? 'bg-gradient-to-r from-rose-500 to-rose-600 shadow-rose-200 dark:shadow-none' : 'bg-gradient-to-r from-amber-400 to-amber-500 shadow-amber-200 dark:shadow-none';
                     const icon = isCritical ? 'fa-circle-exclamation' : 'fa-bell';
                     alertsCont.innerHTML += `
-                        <div class="${bgClass} shadow-lg p-5 rounded-[1.5rem] text-white flex items-center justify-between cursor-pointer hover:scale-[1.02] transition-transform" onclick="openMemberProfile('${escapeHtml(row.Family_Member)}')">
+                        <div class="${bgClass} shadow-lg p-5 rounded-[1.5rem] text-white flex items-center justify-between cursor-pointer hover:scale-[1.02] transition-transform" onclick="openMemberProfile('${escapeJs(row.Family_Member)}')">
                             <div class="flex items-center">
                                 <div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} border-2 border-white/50 text-white flex items-center justify-center font-black shadow-inner mr-4 shrink-0">${getInitials(row.Family_Member)}</div>
                                 <div><div class="text-white/90 text-[10px] font-black uppercase tracking-widest mb-0.5"><i class="fa-solid ${icon} mr-1"></i> Refill Needed</div><h3 class="font-extrabold text-lg text-white drop-shadow-sm">${row.Detail_1}</h3></div>
@@ -1054,11 +1391,11 @@
                     const daysAway = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
                     const timeTag = daysAway === 1 ? "Tomorrow" : `In ${daysAway} days`;
                     upcomingCont.innerHTML += `
-                        <div class="glass-card p-5 border-l-4 border-l-brand-500 flex items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onclick="openMemberProfile('${r.Family_Member}')">
+                        <div class="glass-card p-5 border-l-4 border-l-brand-500 flex items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" onclick="openMemberProfile('${escapeJs(r.Family_Member)}')">
                             <div class="h-12 w-12 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-500 flex items-center justify-center text-lg mr-4 shrink-0"><i class="fa-regular fa-calendar"></i></div>
                             <div class="flex-1">
-                                <h4 class="font-extrabold text-slate-900 dark:text-white">${r.Detail_1}</h4>
-                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">${r.Family_Member} • ${d.toLocaleDateString()}</p>
+                                <h4 class="font-extrabold text-slate-900 dark:text-white">${escapeHtml(r.Detail_1)}</h4>
+                                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">${escapeHtml(r.Family_Member)} • ${formatDate(r.Date)}</p>
                             </div>
                             <div class="bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">${timeTag}</div>
                         </div>`;
@@ -1076,7 +1413,7 @@
             const checklistKey = `fh_medChecklist_${todayStr}`;
             let checklistState = JSON.parse(localStorage.getItem(checklistKey) || '{}');
             
-            const activeMeds = healthData.filter(r => r.Type === 'Medicine');
+            const activeMeds = healthData.filter(r => r.Type === 'Medicine' && calculateMedicineStats(r).remain > 0);
             if (activeMeds.length === 0) {
                 cont.innerHTML = `<div class="glass-card p-6 text-center text-slate-400 font-medium">No active medicines to track today.</div>`;
                 return;
@@ -1120,11 +1457,15 @@
                 const memData = healthData.filter(r => r.Family_Member === member);
                 const meds = memData.filter(r => r.Type === 'Medicine').length;
                 const activity = memData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').length;
-                
+                const memberRow = healthData.find(r => r.Type === 'Member' && r.Family_Member === member);
+                const age = calculateAge(memberRow?.Date);
+                const ageBadge = age !== null ? `<span class="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">${age} yrs</span>` : '';
+
                 grid.innerHTML += `
-                    <div onclick="openMemberProfile('${escapeHtml(member)}')" class="glass-card p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group">
+                    <div onclick="openMemberProfile('${escapeJs(member)}')" class="glass-card p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group">
                         <div class="h-20 w-20 rounded-full ${getAvatarClass(member)} text-white flex items-center justify-center text-2xl font-black shadow-inner mb-4 border-4 border-white dark:border-slate-800 group-hover:scale-105 transition-transform">${getInitials(member)}</div>
                         <h4 class="font-extrabold text-slate-900 dark:text-white text-lg">${member}</h4>
+                        ${ageBadge}
                         <div class="mt-3 w-full flex justify-between px-2 text-xs font-bold text-slate-500 dark:text-slate-400">
                             <span class="flex flex-col items-center bg-slate-50 dark:bg-slate-800/50 rounded-lg px-3 py-1.5 w-[45%]"><i class="fa-solid fa-pills text-brand-500 mb-1"></i> ${meds}</span>
                             <span class="flex flex-col items-center bg-slate-50 dark:bg-slate-800/50 rounded-lg px-3 py-1.5 w-[45%]"><i class="fa-solid fa-stethoscope text-accent-500 mb-1"></i> ${activity}</span>
@@ -1137,9 +1478,23 @@
         function renderMedicines() {
             const cont = document.getElementById('allMedicinesContainer');
             cont.innerHTML = "";
-            let hasData = false;
-            healthData.filter(r=>r.Type==='Medicine').forEach(row => { hasData = true; cont.innerHTML += buildMedicineCard(row, true); });
-            if(!hasData) cont.innerHTML = `<div class="col-span-full glass-card p-10 text-center"><p class="text-slate-500 font-medium">No medicines tracked.</p></div>`;
+            let allMeds = healthData.filter(r => r.Type === 'Medicine');
+            let filteredMeds = allMeds;
+
+            if (currentMedFilter === 'active') {
+                filteredMeds = allMeds.filter(m => calculateMedicineStats(m).remain > 0);
+            } else if (currentMedFilter === 'finished') {
+                filteredMeds = allMeds.filter(m => calculateMedicineStats(m).remain <= 0);
+            }
+
+            filteredMeds.forEach(row => { cont.innerHTML += buildMedicineCard(row, true); });
+
+            const emptyMessages = {
+                active: 'No active medicines. All prescriptions have been completed!',
+                finished: 'No finished medicines yet.',
+                all: 'No medicines tracked.'
+            };
+            if (filteredMeds.length === 0) cont.innerHTML = `<div class="col-span-full glass-card p-10 text-center"><p class="text-slate-500 font-medium">${emptyMessages[currentMedFilter]}</p></div>`;
         }
 
         function renderReportsFilter() {
@@ -1172,6 +1527,9 @@
             const alg = memberRow?.Detail_2 || 'None Listed';
             const ins = memberRow?.Detail_3 || 'None Listed';
             const docPhone = memberRow?.Notes || 'None Listed';
+            const dob = memberRow?.Date || '';
+            const age = calculateAge(dob);
+            const ageStr = age !== null ? ` (Age: ${age})` : '';
 
             const meds = currentProfileData.filter(r => r.Type === 'Medicine');
             const history = currentProfileData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').sort((a, b) => new Date(b.Date) - new Date(a.Date));
@@ -1179,11 +1537,11 @@
 
             let html = `
                 <div class="print-header">
-                    <h1 style="margin:0; font-size: 24px;">Medical Summary: ${currentActiveMemberName}</h1>
+                    <h1 style="margin:0; font-size: 24px;">Medical Summary: ${currentActiveMemberName}${ageStr}</h1>
                     <p style="margin: 5px 0 0 0; font-size: 12px; color: #555;">Generated on ${d} via Family Health Hub</p>
                 </div>
                 <div style="margin-bottom: 20px; padding: 10px; background: #f0f0f0; border-radius: 6px;">
-                    <strong>Blood Type:</strong> ${bType} | <strong>Allergies:</strong> ${alg}<br>
+                    ${dob ? `<strong>DOB:</strong> ${formatDate(dob)} | ` : ''}<strong>Blood Type:</strong> ${bType} | <strong>Allergies:</strong> ${alg}<br>
                     <strong>Insurance:</strong> ${ins} | <strong>Dr. Phone:</strong> ${docPhone}
                 </div>
             `;
@@ -1222,7 +1580,8 @@
             const bType = memberRow?.Detail_1 || 'None Listed';
             const alg = memberRow?.Detail_2 || 'None Listed';
             const docPhone = memberRow?.Notes || 'None Listed';
-            
+            const age = calculateAge(memberRow?.Date);
+
             const canvas = document.createElement('canvas');
             canvas.width = 1080;
             canvas.height = 1920;
@@ -1240,9 +1599,14 @@
             ctx.textAlign = 'center';
             ctx.fillText('EMERGENCY MEDICAL ID', canvas.width/2, 150);
 
-            // Name
+            // Name + Age
             ctx.font = 'bold 80px "Plus Jakarta Sans", sans-serif';
             ctx.fillText(currentActiveMemberName.toUpperCase(), canvas.width/2, 400);
+            if (age !== null) {
+                ctx.font = 'bold 50px "Plus Jakarta Sans", sans-serif';
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(`Age: ${age}`, canvas.width/2, 470);
+            }
 
             // Details
             ctx.textAlign = 'left';
@@ -1302,6 +1666,8 @@
             const badgesCont = document.getElementById('profileEmergencyInfo');
             badgesCont.innerHTML = '';
             if (memberRow) {
+                const age = calculateAge(memberRow.Date);
+                if (age !== null) badgesCont.innerHTML += `<span class="bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 px-3 py-1 rounded-lg text-xs font-bold border border-sky-200 dark:border-sky-800"><i class="fa-solid fa-cake-candles mr-1"></i> Age: ${age}</span>`;
                 if (memberRow.Detail_1) badgesCont.innerHTML += `<span class="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-3 py-1 rounded-lg text-xs font-bold border border-rose-200 dark:border-rose-800"><i class="fa-solid fa-droplet mr-1"></i> Blood: ${memberRow.Detail_1}</span>`;
                 if (memberRow.Detail_2) badgesCont.innerHTML += `<span class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-3 py-1 rounded-lg text-xs font-bold border border-amber-200 dark:border-amber-800"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Allergies: ${memberRow.Detail_2}</span>`;
                 if (memberRow.Detail_3) badgesCont.innerHTML += `<span class="bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 px-3 py-1 rounded-lg text-xs font-bold border border-brand-200 dark:border-brand-800"><i class="fa-solid fa-shield-halved mr-1"></i> Ins: ${memberRow.Detail_3}</span>`;
@@ -1393,6 +1759,251 @@
             }
         }
 
+        // ==========================================
+        // CONFIRMATION DIALOG
+        // ==========================================
+        function showConfirm(title, message, actionLabel, actionColor, callback) {
+            pendingConfirmCallback = callback;
+            document.getElementById('confirmTitle').innerText = title;
+            document.getElementById('confirmMessage').innerText = message;
+            const btn = document.getElementById('confirmActionBtn');
+            btn.innerText = actionLabel;
+            btn.className = `flex-1 ${actionColor} text-white font-bold py-3.5 rounded-xl hover:opacity-90 transition-colors`;
+            document.getElementById('confirmModal').classList.add('active');
+            setTimeout(() => document.getElementById('confirmModalContent').style.transform = 'scale(1)', 10);
+        }
+        function closeConfirmModal() {
+            document.getElementById('confirmModalContent').style.transform = 'scale(0.95)';
+            setTimeout(() => document.getElementById('confirmModal').classList.remove('active'), 200);
+            pendingConfirmCallback = null;
+        }
+        function executeConfirm() {
+            if (pendingConfirmCallback) pendingConfirmCallback();
+            closeConfirmModal();
+        }
+
+        // ==========================================
+        // DELETE RECORD
+        // ==========================================
+        async function deleteRecord(row) {
+            showConfirm(
+                'Delete Record?',
+                `This will permanently remove "${row.Detail_1}" for ${row.Family_Member} from your vault.`,
+                'Delete',
+                'bg-rose-500',
+                async () => {
+                    toggleLoading(true, "Deleting Record", "Removing from Google Drive...");
+
+                    // Remove from local data immediately
+                    const idx = healthData.findIndex(r =>
+                        r.Timestamp === row.Timestamp &&
+                        r.Family_Member === row.Family_Member &&
+                        r.Detail_1 === row.Detail_1 &&
+                        r.Type === row.Type
+                    );
+                    if (idx !== -1) healthData.splice(idx, 1);
+                    localStorage.setItem('fh_cached_data', JSON.stringify(healthData));
+                    extractFamilyMembers();
+                    renderAll();
+
+                    // If we were on a member profile, re-render it
+                    if (currentActiveMemberName) {
+                        currentProfileData = healthData.filter(r => r.Family_Member === currentActiveMemberName);
+                        openMemberProfile(currentActiveMemberName);
+                    }
+
+                    // Send delete to backend
+                    try {
+                        await fetch(APPS_SCRIPT_URL, {
+                            method: 'POST', mode: 'no-cors',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({
+                                pwd: USER_PWD, action: 'delete', type: row.Type,
+                                timestamp: row.Timestamp, member: row.Family_Member, detail1: row.Detail_1
+                            })
+                        });
+                    } catch (err) {
+                        console.error("Delete POST error:", err);
+                    }
+
+                    toggleLoading(false);
+                    showToast("Record deleted.", "info");
+                    setTimeout(() => fetchData(true), 2000);
+                }
+            );
+        }
+
+        async function deleteMember(memberName) {
+            showConfirm(
+                'Remove Family Member?',
+                `This will delete "${memberName}" and ALL their associated records (medicines, checkups, vitals, insurance). This cannot be undone.`,
+                'Remove Everything',
+                'bg-rose-500',
+                async () => {
+                    toggleLoading(true, "Removing Member", "Deleting all records from Google Drive...");
+
+                    // Find all records for this member and delete them
+                    const memberRecords = healthData.filter(r => r.Family_Member === memberName);
+                    healthData = healthData.filter(r => r.Family_Member !== memberName);
+                    localStorage.setItem('fh_cached_data', JSON.stringify(healthData));
+                    extractFamilyMembers();
+                    renderAll();
+                    navigate('family');
+
+                    // Send delete requests for each record
+                    for (const row of memberRecords) {
+                        try {
+                            await fetch(APPS_SCRIPT_URL, {
+                                method: 'POST', mode: 'no-cors',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify({
+                                    pwd: USER_PWD, action: 'delete', type: row.Type,
+                                    timestamp: row.Timestamp, member: row.Family_Member, detail1: row.Detail_1
+                                })
+                            });
+                        } catch (err) { console.error("Delete error:", err); }
+                    }
+
+                    toggleLoading(false);
+                    showToast(`${memberName} and all records removed.`, "info");
+                    setTimeout(() => fetchData(true), 2000);
+                }
+            );
+        }
+
+        // ==========================================
+        // MEDICINE FILTER (Active / Finished / All)
+        // ==========================================
+        function setMedFilter(filter) {
+            currentMedFilter = filter;
+            ['active', 'finished', 'all'].forEach(f => {
+                const btn = document.getElementById('medFilter-' + f);
+                if (f === filter) {
+                    btn.className = 'px-5 py-2 rounded-full font-bold text-sm shrink-0 transition-colors shadow-sm bg-slate-900 dark:bg-white text-white dark:text-slate-900';
+                } else {
+                    btn.className = 'px-5 py-2 rounded-full font-bold text-sm shrink-0 transition-colors shadow-sm bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
+                }
+            });
+            renderMedicines();
+        }
+
+        // ==========================================
+        // EXPORT DATA (JSON & CSV)
+        // ==========================================
+        function exportData() {
+            if (healthData.length === 0) { showToast("No data to export.", "error"); return; }
+
+            showConfirm(
+                'Export Your Data',
+                'Download a complete backup of all your family health records as a JSON file.',
+                'Download Backup',
+                'bg-brand-500',
+                () => {
+                    const exportObj = {
+                        exportDate: new Date().toISOString(),
+                        appVersion: 'Family Health Hub Pro',
+                        totalRecords: healthData.length,
+                        familyMembers: familyMembersList,
+                        data: healthData
+                    };
+                    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `FamilyHealthHub_Backup_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast("Backup downloaded successfully!", "success");
+                }
+            );
+        }
+
+        // ==========================================
+        // LAST SYNCED TIMESTAMP
+        // ==========================================
+        function updateLastSyncDisplay() {
+            if (!lastSyncTime) return;
+            const badge = document.getElementById('lastSyncBadge');
+            const text = document.getElementById('lastSyncText');
+            badge.classList.remove('hidden');
+
+            const diff = Math.floor((Date.now() - lastSyncTime) / 1000);
+            if (diff < 10) text.innerText = 'Just now';
+            else if (diff < 60) text.innerText = `${diff}s ago`;
+            else if (diff < 3600) text.innerText = `${Math.floor(diff/60)}m ago`;
+            else text.innerText = `${Math.floor(diff/3600)}h ago`;
+        }
+
+        // ==========================================
+        // PULL TO REFRESH (Mobile)
+        // ==========================================
+        function initPullToRefresh() {
+            const scrollArea = document.getElementById('mainScrollArea');
+            const indicator = document.getElementById('pullToRefreshIndicator');
+            let startY = 0, pulling = false, refreshing = false;
+
+            scrollArea.addEventListener('touchstart', (e) => {
+                if (scrollArea.scrollTop <= 0 && !refreshing) {
+                    startY = e.touches[0].clientY;
+                    pulling = true;
+                }
+            }, { passive: true });
+
+            scrollArea.addEventListener('touchmove', (e) => {
+                if (!pulling || refreshing) return;
+                const dy = e.touches[0].clientY - startY;
+                if (dy > 0 && dy < 150 && scrollArea.scrollTop <= 0) {
+                    const progress = Math.min(dy / 80, 1);
+                    indicator.style.transform = `translateX(-50%) translateY(${dy * 0.6}px) rotate(${dy * 2}deg)`;
+                    indicator.classList.toggle('visible', progress > 0.2);
+                }
+            }, { passive: true });
+
+            scrollArea.addEventListener('touchend', async () => {
+                if (!pulling) return;
+                pulling = false;
+                const currentTransform = indicator.style.transform;
+                const match = currentTransform.match(/translateY\(([0-9.]+)px\)/);
+                const dy = match ? parseFloat(match[1]) : 0;
+
+                if (dy > 45) {
+                    refreshing = true;
+                    indicator.classList.add('refreshing');
+                    indicator.style.transform = 'translateX(-50%) translateY(50px)';
+                    await fetchData();
+                    refreshing = false;
+                    indicator.classList.remove('refreshing');
+                }
+                indicator.classList.remove('visible');
+                indicator.style.transform = 'translateX(-50%)';
+            });
+        }
+
+        // ==========================================
+        // KEYBOARD SHORTCUTS
+        // ==========================================
+        document.addEventListener('keydown', (e) => {
+            // Don't fire shortcuts when typing in inputs
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+            // Don't fire if a modal is open
+            if (document.getElementById('searchOverlay').classList.contains('active') ||
+                document.getElementById('addMemberModal').classList.contains('active') ||
+                document.getElementById('editMemberModal').classList.contains('active') ||
+                document.getElementById('confirmModal').classList.contains('active')) return;
+
+            switch(e.key) {
+                case '/': e.preventDefault(); toggleSearch(); break;
+                case 'n': case 'N': navigate('add'); break;
+                case 'd': case 'D': toggleDarkMode(); break;
+                case 'r': case 'R': fetchData(); break;
+                case '1': navigate('dashboard'); break;
+                case '2': navigate('family'); break;
+                case '3': navigate('medicines'); break;
+                case '4': navigate('reports'); break;
+                case 'e': case 'E': exportData(); break;
+            }
+        });
+
         function executeSearch() {
             const query = document.getElementById('globalSearchInput').value.toLowerCase();
             const container = document.getElementById('searchResultsContainer');
@@ -1414,33 +2025,33 @@
                 let title = '';
                 let subtitle = '';
                 let rightText = '';
-                let onClick = `onclick="toggleSearch(); openMemberProfile('${escapeHtml(row.Family_Member)}')"`;
+                let onClick = `onclick="toggleSearch(); openMemberProfile('${escapeJs(row.Family_Member)}')"`;
                 
                 if (row.Type === 'Member') {
                     iconHtml = `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-lg font-black shadow-inner border-2 border-white dark:border-slate-800 shrink-0">${getInitials(row.Family_Member)}</div>`;
-                    title = row.Family_Member;
+                    title = escapeHtml(row.Family_Member);
                     subtitle = "Family Profile";
                     rightText = '<i class="fa-solid fa-chevron-right text-slate-300"></i>';
                 } else if (row.Type === 'Medicine') {
                     iconHtml = `<div class="h-12 w-12 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-500 flex items-center justify-center text-xl border-2 border-white dark:border-slate-800 shrink-0"><i class="fa-solid fa-pills"></i></div>`;
-                    title = row.Detail_1;
-                    subtitle = row.Family_Member;
+                    title = escapeHtml(row.Detail_1);
+                    subtitle = escapeHtml(row.Family_Member);
                     const stats = calculateMedicineStats(row);
                     rightText = `${stats.daysLeft} days`;
                 } else if (row.Type === 'Checkup') {
                     iconHtml = `<div class="h-12 w-12 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-500 flex items-center justify-center text-xl border-2 border-white dark:border-slate-800 shrink-0"><i class="fa-solid fa-user-doctor"></i></div>`;
-                    title = row.Detail_1;
-                    subtitle = row.Family_Member;
-                    rightText = new Date(row.Date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    title = escapeHtml(row.Detail_1);
+                    subtitle = escapeHtml(row.Family_Member);
+                    rightText = formatDate(row.Date);
                 } else if (row.Type === 'Vital') {
                     iconHtml = `<div class="h-12 w-12 rounded-full bg-rose-50 dark:bg-rose-900/30 text-rose-500 flex items-center justify-center text-xl border-2 border-white dark:border-slate-800 shrink-0"><i class="fa-solid fa-heart-pulse"></i></div>`;
-                    title = `${row.Detail_1} <span class="text-rose-500 font-bold ml-1">${row.Detail_2}</span>`;
-                    subtitle = row.Family_Member;
-                    rightText = new Date(row.Date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    title = `${escapeHtml(row.Detail_1)} <span class="text-rose-500 font-bold ml-1">${escapeHtml(row.Detail_2)}</span>`;
+                    subtitle = escapeHtml(row.Family_Member);
+                    rightText = formatDate(row.Date);
                 } else if (row.Type === 'Insurance') {
                     iconHtml = `<div class="h-12 w-12 rounded-full bg-accent-50 dark:bg-accent-900/30 text-accent-500 flex items-center justify-center text-xl border-2 border-white dark:border-slate-800 shrink-0"><i class="fa-solid fa-shield-halved"></i></div>`;
-                    title = row.Detail_1;
-                    subtitle = row.Family_Member;
+                    title = escapeHtml(row.Detail_1);
+                    subtitle = escapeHtml(row.Family_Member);
                     rightText = 'Policy';
                 }
 

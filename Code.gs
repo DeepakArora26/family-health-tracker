@@ -120,9 +120,15 @@ function doPost(e) {
   }
 
   try {
-    // Parse incoming JSON payload
-    let payload = JSON.parse(e.postData.contents);
-    
+    // Parse incoming JSON payload (handles both application/json and text/plain content types)
+    let payload;
+    try {
+      payload = JSON.parse(e.postData.contents);
+    } catch (parseError) {
+      return ContentService.createTextOutput(JSON.stringify({ error: "Invalid JSON in request body: " + parseError.toString() }))
+                           .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // REQUIRE PASSWORD FOR POST REQUESTS
     if (!isAuthenticated(payload.pwd)) {
        return ContentService.createTextOutput(JSON.stringify({ error: "Unauthorized. Incorrect password." }))
@@ -135,6 +141,41 @@ function doPost(e) {
       ss = getSpreadsheet();
     }
     
+    // ========== DELETE ACTION ==========
+    if (payload.action === 'delete') {
+      let type = payload.type;
+      let sheet = ss.getSheetByName(type);
+      if (!sheet) {
+        return ContentService.createTextOutput(JSON.stringify({ error: "Sheet not found: " + type }))
+                             .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      let data = sheet.getDataRange().getValues();
+      let targetTimestamp = payload.timestamp || "";
+      let targetMember = payload.member || "";
+      let targetDetail1 = payload.detail1 || "";
+
+      // Find the row by matching Timestamp + Family_Member + Detail_1
+      for (let i = data.length - 1; i >= 1; i--) {
+        let rowTs = data[i][0];
+        if (rowTs instanceof Date) rowTs = rowTs.toISOString();
+        let rowMember = String(data[i][2]);
+        let rowDetail1 = String(data[i][3]);
+
+        if (String(rowTs) === String(targetTimestamp) &&
+            rowMember === targetMember &&
+            rowDetail1 === targetDetail1) {
+          sheet.deleteRow(i + 1); // Sheets are 1-indexed
+          return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "deleted" }))
+                               .setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ error: "Row not found for deletion." }))
+                           .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ========== DEFAULT: ADD ACTION ==========
     // Determine which tab to write to
     let type = payload.type || "Checkup";
     let sheet = ss.getSheetByName(type);
@@ -159,7 +200,7 @@ function doPost(e) {
     
     sheet.appendRow(newRow);
     
-    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", type: type }))
                          .setMimeType(ContentService.MimeType.JSON);
                          
   } catch (error) {
