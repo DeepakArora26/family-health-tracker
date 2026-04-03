@@ -8,7 +8,7 @@ const SECRET_PASSWORD = "my-secure-family-password";
 // 2. Name of your Spreadsheet in Google Drive
 const SPREADSHEET_NAME = "FamilyHealthVault";
 
-const TABS = ["Member", "Checkup", "Medicine", "Vital", "Insurance"];
+const TABS = ["Member", "Checkup", "Medicine", "Vital", "Insurance", "Threshold"];
 const HEADERS = ["Timestamp", "Date", "Family_Member", "Detail_1", "Detail_2", "Detail_3", "Report_Link", "Notes"];
 
 // Helper function to verify the password sent from the frontend
