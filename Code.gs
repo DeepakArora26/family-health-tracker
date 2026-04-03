@@ -188,18 +188,20 @@ function doPost(e) {
     }
     
     let newRow = [
-      payload.timestamp || new Date().toISOString(),
-      payload.date || "",
-      payload.member || "",
-      payload.detail1 || "",
-      payload.detail2 || "",
-      payload.detail3 || "",
-      payload.link || "",
-      payload.notes || ""
+      (payload.timestamp !== undefined && payload.timestamp !== null) ? payload.timestamp : new Date().toISOString(),
+      (payload.date !== undefined && payload.date !== null) ? payload.date : "",
+      (payload.member !== undefined && payload.member !== null) ? payload.member : "",
+      (payload.detail1 !== undefined && payload.detail1 !== null) ? payload.detail1 : "",
+      (payload.detail2 !== undefined && payload.detail2 !== null) ? payload.detail2 : "",
+      (payload.detail3 !== undefined && payload.detail3 !== null) ? payload.detail3 : "",
+      (payload.link !== undefined && payload.link !== null) ? payload.link : "",
+      (payload.notes !== undefined && payload.notes !== null) ? payload.notes : ""
     ];
     
     sheet.appendRow(newRow);
     
+    Logger.log("Added row to " + type + ": " + JSON.stringify(newRow));
+
     return ContentService.createTextOutput(JSON.stringify({ status: "success", type: type }))
                          .setMimeType(ContentService.MimeType.JSON);
                          

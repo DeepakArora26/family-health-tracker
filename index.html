@@ -160,7 +160,7 @@
             <h1 id="setupTitle" class="text-3xl font-black text-slate-900 dark:text-white mb-2">Secure Vault Setup</h1>
             <p id="setupSubtitle" class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8">Enter your private Google Apps Script credentials to unlock your family's health data.</p>
             
-            <form onsubmit="saveCredentials(event)" class="text-left space-y-5">
+            <form onsubmit="saveCredentials(event); return false;" class="text-left space-y-5">
                 <div id="urlInputContainer">
                     <label class="block text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 ml-1">Apps Script Web App URL <span class="text-rose-500">*</span></label>
                     <input type="url" id="authUrl" required class="input-premium w-full p-4 rounded-xl font-medium text-sm" placeholder="https://script.google.com/macros/s/.../exec">
@@ -420,7 +420,7 @@
                             <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Medicines Cabinet</h2>
                             <p class="text-slate-500 dark:text-slate-400 font-medium mt-2 text-lg">All prescriptions across the family.</p>
                         </div>
-                        <button onclick="navigate('add', 'Medicine')" class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-2.5 rounded-xl font-bold hover:opacity-90 transition-colors shadow-soft flex items-center shrink-0">
+                        <button onclick="navigate('add', 'Medicine')" class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-2.5 rounded-xl font-bold hover:opacity-90 transition-colors shadow-soft flex items-center shrink-0">
                             <i class="fa-solid fa-plus mr-2"></i>Add Medicine
                         </button>
                     </div>
@@ -471,7 +471,7 @@
                             </button>
                         </div>
 
-                        <form id="addRecordForm" onsubmit="submitRecord(event)">
+                        <form id="addRecordForm" onsubmit="submitRecord(event); return false;">
                             <input type="hidden" id="recordType" value="Checkup">
                             
                             <div class="space-y-6">
@@ -545,7 +545,7 @@
                 <h3 class="text-2xl font-black text-slate-900 dark:text-white">Add Member</h3>
                 <button onclick="closeAddMemberModal()" class="text-slate-400 hover:text-rose-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <form onsubmit="submitNewMember(event)">
+            <form onsubmit="submitNewMember(event); return false;">
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Full Name <span class="text-rose-500">*</span></label>
                     <input type="text" id="newMemberName" required maxlength="50" class="input-premium w-full p-3.5 rounded-2xl font-semibold" placeholder="e.g. Grandma">
@@ -588,7 +588,7 @@
                 <h3 class="text-2xl font-black text-slate-900 dark:text-white">Edit Profile</h3>
                 <button onclick="closeEditMemberModal()" class="text-slate-400 hover:text-rose-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <form onsubmit="submitEditMember(event)">
+            <form onsubmit="submitEditMember(event); return false;">
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Full Name</label>
                     <input type="text" id="editMemberName" disabled class="input-premium w-full p-3.5 rounded-2xl font-semibold opacity-60 cursor-not-allowed">
@@ -883,7 +883,7 @@
                     <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Medicine Name <span class="text-rose-500">*</span></label><input type="text" id="detail1" required list="medicinesList" autocomplete="off" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. Paracetamol 500mg"></div>
                     <div class="grid grid-cols-2 gap-4">
                         <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Total Pills <span class="text-rose-500">*</span></label><input type="number" id="detail2" required min="1" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 30"></div>
-                        <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Daily Dose <span class="text-rose-500">*</span></label><input type="number" id="detail3" required min="0.5" step="0.5" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 2"></div>
+                        <div><label class="block text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1">Daily Dose <span class="text-rose-500">*</span></label><input type="number" id="detail3" required min="0.5" step="any" class="input-premium w-full p-4 rounded-2xl font-semibold" placeholder="e.g. 2"></div>
                     </div>
                 `;
             } else if (type === 'Vital') {
@@ -1165,18 +1165,43 @@
 
         async function submitRecord(e) {
             e.preventDefault();
+
+            // Manually validate required fields before proceeding
+            const memberVal = document.getElementById('memberName').value;
+            const dateVal = document.getElementById('recordDate').value;
+            const detail1El = document.getElementById('detail1');
+            const detail2El = document.getElementById('detail2');
+            const detail3El = document.getElementById('detail3');
+            const reportLinkEl = document.getElementById('reportLink');
+
+            if (!memberVal) { showToast("Please select a family member.", "error"); return; }
+            if (!dateVal) { showToast("Please select a date.", "error"); return; }
+            if (!detail1El || !detail1El.value.trim()) { showToast("Please fill in the required detail field.", "error"); return; }
+
+            const recordType = document.getElementById('recordType').value;
+            if (recordType === 'Medicine') {
+                if (!detail2El || !detail2El.value || parseFloat(detail2El.value) < 1) {
+                    showToast("Please enter a valid total pill count (at least 1).", "error"); return;
+                }
+                if (!detail3El || !detail3El.value || parseFloat(detail3El.value) < 0.5) {
+                    showToast("Please enter a valid daily dose (at least 0.5).", "error"); return;
+                }
+            }
+
             const payload = {
                 pwd: USER_PWD,
                 timestamp: new Date().toISOString(),
-                date: document.getElementById('recordDate').value,
-                type: document.getElementById('recordType').value,
-                member: document.getElementById('memberName').value,
-                detail1: document.getElementById('detail1').value,
-                detail2: document.getElementById('detail2') ? document.getElementById('detail2').value : "",
-                detail3: document.getElementById('detail3') ? document.getElementById('detail3').value : "",
-                link: document.getElementById('reportLink') ? document.getElementById('reportLink').value : "",
+                date: dateVal,
+                type: recordType,
+                member: memberVal,
+                detail1: detail1El.value.trim(),
+                detail2: detail2El ? detail2El.value : "",
+                detail3: detail3El ? detail3El.value : "",
+                link: reportLinkEl ? reportLinkEl.value : "",
                 notes: document.getElementById('notes').value || ""
             };
+
+            console.log("Submitting record payload:", JSON.stringify(payload));
 
             toggleLoading(true, "Saving Record", "Encrypting and syncing to Drive...");
 
@@ -1198,7 +1223,13 @@
             renderAll();
 
             try {
-                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                console.log("Record POST sent successfully (no-cors, opaque response expected).");
             } catch (err) {
                 console.error("POST error (data saved locally):", err);
             }
@@ -1251,7 +1282,7 @@
             const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${escapeJs(row.Family_Member)}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-shield-halved"></i></div>`;
 
             return `
-                <div class="glass-card print-card p-6 relative group/card">
+                <div class="glass-card print-card p-6 relative group">
                     ${buildDeleteBtn(row)}
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex items-center">${avatarHtml}<div><h3 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1}</h3>${memberHtml}</div></div>
@@ -1277,11 +1308,11 @@
             const avatarHtml = includeMember ? `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-sm font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0 no-print" onclick="openMemberProfile('${escapeJs(row.Family_Member)}')">${getInitials(row.Family_Member)}</div>` : `<div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-lg shadow-inner mr-4 shrink-0 no-print"><i class="fa-solid fa-pills"></i></div>`;
 
             return `
-                <div class="glass-card print-card p-6 relative group/card">
+                <div class="glass-card print-card p-6 relative group">
                     ${buildDeleteBtn(row)}
                     <div class="flex justify-between items-start mb-6">
                         <div class="flex items-center">${avatarHtml}<div><h3 class="font-extrabold text-slate-900 dark:text-white text-lg">${row.Detail_1}</h3>${memberHtml}</div></div>
-                        <div class="${statusPill} flex flex-col items-center justify-center px-3 py-2 rounded-xl border shrink-0"><span class="text-lg font-black leading-none">${stats.daysLeft}</span><span class="text-[8px] uppercase font-extrabold tracking-widest mt-1 opacity-80">Days</span></div>
+                        <div class="${statusPill} flex flex-col items-center justify-center px-3 py-2 rounded-xl border shrink-0"><span class="text-lg font-black leading-none drop-shadow-md">${stats.daysLeft}</span><span class="text-[8px] uppercase font-extrabold tracking-widest mt-1 opacity-90">Days</span></div>
                     </div>
                     <div class="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
                         <div class="flex justify-between text-xs mb-2 font-bold text-slate-500 uppercase tracking-wider"><span>${stats.remain} left</span><span>${stats.total} total</span></div>
@@ -1514,7 +1545,7 @@
             let history = healthData.filter(r => r.Type === 'Checkup' || r.Type === 'Vital').sort((a,b)=>new Date(b.Date)-new Date(a.Date));
             if (currentReportFilter !== 'All') history = history.filter(r => r.Family_Member === currentReportFilter);
             history.forEach(row => { cont.innerHTML += buildHistoryItem(row, currentReportFilter === 'All'); });
-            if(history.length===0) cont.innerHTML = `<div class="glass-card p-8 text-center text-slate-400 font-medium">No logs found for this selection.</div>`;
+            if(history.length===0) cont.innerHTML = `<div class="glass-card p-6 text-center text-slate-400 font-medium">No logs found for this selection.</div>`;
         }
 
         function printDoctorReport() {
@@ -2028,7 +2059,7 @@
                 let onClick = `onclick="toggleSearch(); openMemberProfile('${escapeJs(row.Family_Member)}')"`;
                 
                 if (row.Type === 'Member') {
-                    iconHtml = `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-lg font-black shadow-inner border-2 border-white dark:border-slate-800 shrink-0">${getInitials(row.Family_Member)}</div>`;
+                    iconHtml = `<div class="h-12 w-12 rounded-full ${getAvatarClass(row.Family_Member)} text-white flex items-center justify-center text-lg font-black shadow-inner mr-4 cursor-pointer hover:opacity-90 shrink-0">${getInitials(row.Family_Member)}</div>`;
                     title = escapeHtml(row.Family_Member);
                     subtitle = "Family Profile";
                     rightText = '<i class="fa-solid fa-chevron-right text-slate-300"></i>';
@@ -2074,3 +2105,8 @@
     </script>
 </body>
 </html>
+
+
+
+
+
